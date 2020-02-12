@@ -1,0 +1,4 @@
+DOXYFILE_ENCODING      = UTF-8
+PROJECT_NAME           = "Xenon"
+OUTPUT_LANGUAGE        = English
+TAB_SIZE               = 4

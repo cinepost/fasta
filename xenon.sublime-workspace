@@ -1,0 +1,288 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"he",
+				"height_old"
+			],
+			[
+				"w",
+				"width_old"
+			],
+			[
+				"h",
+				"height"
+			],
+			[
+				"s",
+				"success"
+			],
+			[
+				"VER",
+				"vertex_shader"
+			],
+			[
+				"get",
+				"getName"
+			],
+			[
+				"IMG_Til",
+				"IMG_TileSocket"
+			],
+			[
+				"UT",
+				"UT_String"
+			],
+			[
+				"seq",
+				"seq"
+			],
+			[
+				"ROP_",
+				"ROP_Node"
+			],
+			[
+				"re",
+				"return"
+			]
+		]
+	},
+	"buffers":
+	[
+		{
+			"file": "src/fasta_cmd/fasta.cpp",
+			"settings":
+			{
+				"buffer_size": 9676,
+				"line_ending": "Unix"
+			}
+		}
+	],
+	"build_system": "",
+	"build_system_choices":
+	[
+	],
+	"build_varint": "",
+	"command_palette":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"console":
+	{
+		"height": 139.0,
+		"history":
+		[
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"expanded_folders":
+	[
+		"/home/max/dev/fasta",
+		"/home/max/dev/fasta/src",
+		"/home/max/dev/fasta/src/fasta_cmd"
+	],
+	"file_history":
+	[
+		"/home/max/dev/fasta/CMakeLists.txt",
+		"/home/max/dev/fasta/third_party/glad/include/KHR/khrplatform.h",
+		"/home/max/dev/fasta/third_party/glad/include/glad/glad.h",
+		"/home/max/dev/fasta/src/locomotive_lib/logging.h",
+		"/home/max/dev/fasta/src/locomotive_lib/CMakeLists.txt",
+		"/home/max/dev/fasta/src/locomotive_lib/logging.cpp",
+		"/home/max/dev/fasta/src/xenon_lib/XN_RendererIPR.h",
+		"/home/max/dev/fasta/src/xenon_py/CMakeLists.txt",
+		"/home/max/dev/fasta/src/xenon_lib/XN_Shader.h",
+		"/home/max/dev/fasta/src/xenon_lib/CMakeLists.txt",
+		"/home/max/dev/fasta/src/xenon_cmd/CMakeLists.txt",
+		"/home/max/dev/fasta/src/xenon_lib/XN_Mesh.h",
+		"/home/max/dev/fasta/src/xenon_lib/XN_Shader.cpp",
+		"/home/max/dev/fasta/src/xenon_lib/XN_GBuffer.cpp",
+		"/home/max/dev/fasta/src/xenon_lib/XN_GBuffer.h",
+		"/home/max/dev/fasta/src/xenon_lib/XN_Renderer.h",
+		"/home/max/dev/fasta/src/xenon_lib/XN_Renderer.cpp",
+		"/home/max/dev/fasta/src/xenon_cmd/fsquad.h",
+		"/home/max/dev/fasta/src/xenon_cmd/xenon.cpp",
+		"/home/max/dev/fasta/src/xenon_lib/XN_RendererIPR.cpp",
+		"/home/max/projects/Xenon/xenon.sublime-project",
+		"/home/max/projects/Xenon/src/ROP_Xenon.h",
+		"/home/max/projects/Xenon/src/ROP_Xenon.cpp",
+		"/home/max/projects/Xenon/makefile"
+	],
+	"find":
+	{
+		"height": 26.0
+	},
+	"find_in_files":
+	{
+		"height": 0.0,
+		"where_history":
+		[
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+			"Program",
+			"glfw_error_callback",
+			"error_callback",
+			"GL_LUMINANCE"
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+			"_program",
+			"error_callback",
+			"glfw_error_callback"
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"selected": 0,
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"file": "src/fasta_cmd/fasta.cpp",
+					"semi_transient": true,
+					"settings":
+					{
+						"buffer_size": 9676,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 26.0
+	},
+	"input":
+	{
+		"height": 0.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.SublimeLinter":
+	{
+		"height": 0.0
+	},
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"pinned_build_system": "Packages/Makefile/Make.sublime-build",
+	"project": "xenon.sublime-project",
+	"replace":
+	{
+		"height": 48.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"selected_group": 0,
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 352.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}

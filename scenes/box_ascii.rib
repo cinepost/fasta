@@ -1,0 +1,57 @@
+##RIB
+version 3.03
+# Houdini Version: 14.0.444
+# Generation Time: Oct 03, 2015 at 13:15:26
+#   Backend: soho
+#     Render Defs: /opt/hfs14.0.444/houdini/soho/python2.7/RIBprman18.0.py
+#        HIP File: /home/max/projects/Xenon/scenes/box, $T=0, $FPS=24
+#   Output driver: /out/rib1
+# Retained geometry
+# /obj/box_object1
+ArchiveBegin "/obj/box_object1" 	# {
+    # Handle: '/obj/box_object1'
+    Sides 2
+    ReverseOrientation
+    PointsGeneralPolygons	# {
+	[1 1 1 1 1 1]
+	[4 4 4 4 4 4]
+	[0 1 3 2 4 5 7 6 6 7 2 3 5 4 1 0 5 0 2 7 1 4 6 3]
+	"P" [0.5 -0.5 0.5 -0.5 -0.5 0.5 0.5 0.5 0.5 -0.5 0.5 0.5 -0.5 -0.5 -0.5 0.5 -0.5 -0.5 -0.5 0.5 -0.5 0.5 0.5 -0.5]
+	"facevarying normal N" [0 0 1 0 0 1 0 0 1 0 0 1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 1 0 0 1 0 0 1 0 0 1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 1 0 0 1 0 0 1 0 0 1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0]
+    	# }
+    ReverseOrientation
+ArchiveEnd	# }
+# Main image
+Option "searchpath" "string shader" [".:/opt/hfs14.0.444/houdini/ri_shaders:&"]
+FrameBegin 1	# {
+    # main camera: /obj/cam1
+    Display "/home/max/projects/Xenon/scenes/render/box.rib1.0001.exr" "framebuffer" "rgba" "int houdiniportnum" [17428]
+    PixelFilter "gaussian" 2 2
+    Quantize "rgba" 255 0 255 0.5
+    Hider "hidden"
+    Format 1920 1080 1
+    Clipping 0.00100000000000000002 10000
+    PixelSamples 3 3
+    Projection "perspective"  "float fov" [45.0000428042869629]
+    ScreenWindow [-1 1 -0.5625 0.5625]
+    Transform [0.882576136680765955 -0.186461697015747552 -0.431614872899048152 0 -5.20417042793042128e-18 0.91799844262159469 -0.396583987755843137 0 -0.470169504499870716 -0.350015563783004136 -0.810203518967926861 0 0.0742526792754727438 0.00970737226127441934 7.57395519633513992 1]
+    WorldBegin	# {
+	TransformBegin	# {
+	    CoordinateSystem "worldspace"
+	TransformEnd	# }
+	# Light Source soho_autoheadlight_light
+	Transform [0.882576136680765955 0 -0.470169504499870772 0 -0.186461697015747552 0.91799844262159469 -0.350015563783004191 0 -0.431614872899048208 -0.396583987755843081 -0.810203518967926861 0 3.20530811970153451 2.99479800222888093 6.17475422937376361 1]
+	Attribute "identifier" "string name" ["soho_autoheadlight_light"]
+	LightSource "distantlight" "soho_autoheadlight_light" 
+	Identity
+	AttributeBegin	# {
+	    # Geometry object /obj/box_object1
+	    Transform [1 0 0 0 0 1 0 0 0 0 1 0 -0.217346534653465373 -0.217346534653465373 -0.163287128712871293 1]
+	    Attribute "identifier" "string name" ["/obj/box_object1"]
+	    Attribute "visibility" "int specular" [1]
+	    Attribute "visibility" "int transmission" [1]
+	    ReadArchive "/obj/box_object1"
+	AttributeEnd	# }
+    WorldEnd	# }
+FrameEnd	# }
+# Script generation time 0.0120552 seconds
