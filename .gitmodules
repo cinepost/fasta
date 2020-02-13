@@ -14,3 +14,7 @@
 	path = third_party/tinyobjloader
 	url = https://github.com/syoyo/tinyobjloader.git
 	branch = master
+[submodule "third_party/blender"]
+	path = third_party/blender
+	url = https://github.com/blender/blender.git
+	branch = blender-v2.81-release

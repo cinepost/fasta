@@ -157,7 +157,7 @@ void FstRenderer::_renderSample(uint sample, uint samples_total) {
 	LOG_DBG << "rendering sample " << sample << " of " << samples_total;
 }
 
-FstGBuffer* FstRenderer::renderFrame(uint width, uint height){
+FstGBuffer* FstRenderer::renderFrame(uint width, uint height, uint aa_samples){
 	if(renderbuffer!=0){
 		// re-use existing render buffer
 		renderbuffer->resize(width, height); // it's ok since resize would do nothing if the size is not changing
@@ -186,6 +186,10 @@ FstGBuffer* FstRenderer::renderFrame(uint width, uint height){
 
 	renderbuffer->unbind();
 	return renderbuffer;
+}
+
+void FstRenderer::_renderBackground() {
+
 }
 
 bool FstRenderer::_renderTile(uint xl, uint xr, uint yb, uint yt, uint tx, uint ty){

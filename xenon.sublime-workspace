@@ -4,6 +4,10 @@
 		"selected_items":
 		[
 			[
+				"Fst",
+				"FstRendererIPR"
+			],
+			[
 				"he",
 				"height_old"
 			],
@@ -52,10 +56,35 @@
 	"buffers":
 	[
 		{
-			"file": "src/fasta_cmd/fasta.cpp",
+			"contents": "#ifndef __FASTA_RENDERER_H__\n#define __FASTA_RENDERER_H__\n\n#include <stdio.h>\n#include <stdlib.h>\n\n#include <glad/glad.h>\n\n#ifdef __APPLE__\n\t#include <OpenGL/gl.h>\n\t#include <OpenGL/OpenGL.h>\n\t#include <OpenGL/CGLTypes.h>\n\t#include <OpenGL/CGLCurrent.h>\n#elif __linux__\n\t#include <X11/X.h>\n\t#include <X11/Xlib.h> \n\t#include <GL/gl.h>\n\t#include <GL/glx.h>\n#endif\n\n#include \"fasta_lib/gbuffer.h\"\n#include \"fasta_lib/shader.h\"\n#include \"fasta_lib/object.h\"\n#include \"fasta_lib/light.h\"\n#include \"fasta_lib/display.h\"\n\n#ifdef __linux__\n\ttypedef GLXContext (*glXCreateContextAttribsARBProc)(Display*, GLXFBConfig, GLXContext, Bool, const int*);\n\ttypedef Bool (*glXMakeContextCurrentARBProc)(Display*, GLXDrawable, GLXDrawable, GLXContext);\n\tstatic glXCreateContextAttribsARBProc glXCreateContextAttribsARB = NULL;\n\tstatic glXMakeContextCurrentARBProc glXMakeContextCurrentARB = NULL;\n#endif\n\nnamespace fst {\n\nclass FstRendererIPR;\n\nclass FstRenderer {\n\tfriend class FstRendererIPR;\n\n\tpublic:\n\t\tFstRenderer();\n\t\t~FstRenderer();\n\t\tbool init();\n\n\t\tFstGBuffer *renderFrame(uint width, uint height);\n\t\t\n\t\tFstDisplay\t*getDisplay();\n\n\t\tFstObject\t*newObject();\n\t\tFstLight\t*newLight();\n\n\t\tuint getCompletedSamples() const;\n\n\tprivate:\n\t\tvoid _renderSample(uint sample, uint samples_total);\n\t\tbool _renderTile(uint xl, uint xr, uint yb, uint yt, uint tx, uint ty);\n\n\n\t\tFstGBuffer *renderbuffer;\n\t\tFstDisplay *display;\n\n\tprivate:\n\t\tbool initialized;\n\n\t\t#ifdef __APPLE__\n\t\t\tCGLContextObj\tctx;\n\t\t#elif __linux__\n\t\t\tGLXContext \t\tctx;\n\n\t\t\tDisplay* \t\tdpy;\n\t    \tGLXFBConfig* \tfbc;\n\t    \tGLXPbuffer \t\tpbuf;\n\t    #endif\n\n\t    int fbcount;\n\t    int\tmaxDrawBuffers;\n\n\tprivate:\n\t    FstShader shaderGeometryPass, shaderLightingPass;\n\n\tprivate:\n\t\tfloat\t\t\t\t\tcurrent_time;\n\t\tstd::vector<FstObject*>\tobjects;\n\t\tstd::vector<FstLight*>\tlights;\n\n\tprivate:\n\t\tuint _width;\n\t\tuint _height;\n\n};\n\n}\n\n#endif // __FASTA_RENDERER_H__",
+			"file": "src/fasta_lib/renderer.h",
+			"file_size": 1891,
+			"file_write_time": 132260614983979184,
 			"settings":
 			{
-				"buffer_size": 9676,
+				"buffer_size": 1891,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"contents": "#include <iostream>\n\n#include \"fasta_utils_lib/logging.h\"\n#include \"fasta_lib/renderer_ipr.h\"\n\nnamespace fst {\n\nFstRendererIPR::FstRendererIPR(): _futureObj(_stopSignal.get_future()) {\n\tstd::cout << \"Fasta IPR renderer constructor called.\" << std::endl;\n\t_renderer = new FstRenderer();\n    std::cout << \"Fasta IPR renderer constructed.\" << std::endl;\n}\n\nFstRendererIPR::~FstRendererIPR(){\n\tstd::cout << \"Fasta IPR renderer destructor called.\" << std::endl;\n\n\tif(_renderer!=nullptr) \n\t\tdelete _renderer;\n\n\tstd::cout << \"Fasta IPR renderer destructed.\" << std::endl;\n}\n\nvoid FstRendererIPR::renderSamples() {\n\twhile (stopRequested() == false) {\n\t\tfor(uint i=0; i < _samples; i++){\n\t\t\t_state = State::RUNNING;\n\t  \t\twhile(_pause_ipr){\n\t  \t\t\t_state = State::PAUSED;\n\t     \t\tstd::unique_lock<std::mutex> lk(_m);\n\t     \t\t_cv.wait(lk);\n\t     \t\tlk.unlock();\n\t  \t\t}\n\t  \t_renderer->_renderSample(i, _samples);\n\t  \tstd::this_thread::sleep_for(std::chrono::milliseconds(1000));\n\t\t}\n\t\t_state = State::DONE;\n\t\tbreak;\n\t}\n\n\t_state = State::DONE;\n\tfprintf(stdout, \"ipr done\\n\");\n}\n\nvoid FstRendererIPR::run(uint width, uint height, uint samples) {\n\tfprintf(stdout, \"ipr run\\n\" );\n\t_width = width;\n\t_height = height;\n\t_samples = samples;\n\t_pause_ipr = false;\n\t_render_thread = std::make_unique<std::thread>(std::bind(&FstRendererIPR::renderSamples, this));\n\t_render_thread->detach();\n}\n\nvoid FstRendererIPR::pause() {\n\tstd::lock_guard<std::mutex> lk(_m);\n  \t_pause_ipr=true;\n  \tLOG_DBG << \"ipr paused\";\n}\n\nvoid FstRendererIPR::resume() {\n\tstd::lock_guard<std::mutex> lk(_m);\n  \t_pause_ipr=false;\n  \t_cv.notify_one();\n  \tLOG_DBG << \"ipr resumed\";\n}\n\nvoid FstRendererIPR::togglePause() {\n\tif (_state == State::PAUSED) {\n\t\tresume();\n\t} else if (_state == State::RUNNING) {\n\t\tpause();\n\t}\n}\n\nbool FstRendererIPR::stopRequested() {\n\t// checks if value in future object is available\n\tif (_futureObj.wait_for(std::chrono::milliseconds(1)) == std::future_status::timeout) return false;\n\treturn true;\n}\n\nvoid FstRendererIPR::resize(uint width, uint height) {\n\t//std::lock_guard<std::mutex> lk(_m);\n\tif ((_state == State::RUNNING) && ((_width != width) || (_height != height))){\n\t\tfprintf(stdout, \"ipr resize\\n\" );\n\t\t//_stopSignal.set_value();\n\t\t//_render_thread->join();\n\t\t//run(width, height, _samples);\n\t}\n}\n\n} // namespace",
+			"file": "src/fasta_lib/renderer_ipr.cpp",
+			"file_size": 2296,
+			"file_write_time": 132260615138220786,
+			"settings":
+			{
+				"buffer_size": 2296,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/fasta_lib/renderer.cpp",
+			"settings":
+			{
+				"buffer_size": 5905,
+				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
 		}
@@ -92,9 +121,6 @@
 	},
 	"expanded_folders":
 	[
-		"/home/max/dev/fasta",
-		"/home/max/dev/fasta/src",
-		"/home/max/dev/fasta/src/fasta_cmd"
 	],
 	"file_history":
 	[
@@ -163,34 +189,90 @@
 	"groups":
 	[
 		{
-			"selected": 0,
+			"selected": 2,
 			"sheets":
 			[
 				{
 					"buffer": 0,
-					"file": "src/fasta_cmd/fasta.cpp",
-					"semi_transient": true,
+					"file": "src/fasta_lib/renderer.h",
+					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 9676,
+						"buffer_size": 1891,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								0,
-								0
+								976,
+								976
 							]
 						],
 						"settings":
 						{
 							"syntax": "Packages/C++/C++.sublime-syntax",
-							"tab_size": 4,
-							"translate_tabs_to_spaces": true
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 153.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "src/fasta_lib/renderer_ipr.cpp",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 2296,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								872,
+								872
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
 						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "src/fasta_lib/renderer.cpp",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 5905,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								4531,
+								4531
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax"
+						},
+						"translation.x": 0.0,
+						"translation.y": 2652.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 0,
@@ -280,7 +362,7 @@
 	"show_open_files": false,
 	"show_tabs": true,
 	"side_bar_visible": true,
-	"side_bar_width": 352.0,
+	"side_bar_width": 215.0,
 	"status_bar_visible": true,
 	"template_settings":
 	{

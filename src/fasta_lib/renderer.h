@@ -43,7 +43,7 @@ class FstRenderer {
 		~FstRenderer();
 		bool init();
 
-		FstGBuffer *renderFrame(uint width, uint height);
+		FstGBuffer *renderFrame(uint width, uint height, uint aa_samples);
 		
 		FstDisplay	*getDisplay();
 
@@ -55,6 +55,8 @@ class FstRenderer {
 	private:
 		void _renderSample(uint sample, uint samples_total);
 		bool _renderTile(uint xl, uint xr, uint yb, uint yt, uint tx, uint ty);
+
+		void _renderBackground();
 
 
 		FstGBuffer *renderbuffer;
