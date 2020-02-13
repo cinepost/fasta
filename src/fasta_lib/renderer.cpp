@@ -153,7 +153,7 @@ bool FstRenderer::init(){
 }
 #endif
 
-void FstRenderer::renderSample(uint sample, uint samples_total) {
+void FstRenderer::_renderSample(uint sample, uint samples_total) {
 	LOG_DBG << "rendering sample " << sample << " of " << samples_total;
 }
 
@@ -188,7 +188,7 @@ FstGBuffer* FstRenderer::renderFrame(uint width, uint height){
 	return renderbuffer;
 }
 
-bool FstRenderer::renderTile(uint xl, uint xr, uint yb, uint yt, uint tx, uint ty){
+bool FstRenderer::_renderTile(uint xl, uint xr, uint yb, uint yt, uint tx, uint ty){
 	return true;
 }
 

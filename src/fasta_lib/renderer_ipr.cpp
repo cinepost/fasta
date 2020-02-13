@@ -30,7 +30,7 @@ void FstRendererIPR::renderSamples() {
 	     		_cv.wait(lk);
 	     		lk.unlock();
 	  		}
-	  	_renderer->renderSample(i, _samples);
+	  	_renderer->_renderSample(i, _samples);
 	  	std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 		}
 		_state = State::DONE;

@@ -33,22 +33,29 @@
 
 namespace fst {
 
+class FstRendererIPR;
+
 class FstRenderer {
+	friend class FstRendererIPR;
+
 	public:
 		FstRenderer();
 		~FstRenderer();
 		bool init();
 
 		FstGBuffer *renderFrame(uint width, uint height);
-		void renderSample(uint sample, uint samples_total);
-		bool renderTile(uint xl, uint xr, uint yb, uint yt, uint tx, uint ty);
-
+		
 		FstDisplay	*getDisplay();
 
 		FstObject	*newObject();
 		FstLight	*newLight();
 
 		uint getCompletedSamples() const;
+
+	private:
+		void _renderSample(uint sample, uint samples_total);
+		bool _renderTile(uint xl, uint xr, uint yb, uint yt, uint tx, uint ty);
+
 
 		FstGBuffer *renderbuffer;
 		FstDisplay *display;
