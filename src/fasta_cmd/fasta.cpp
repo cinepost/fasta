@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string>
 #include <csignal>
+#include <chrono>
 
 #include <unistd.h>
 #include <stdio.h>
@@ -36,6 +37,8 @@ namespace logging = boost::log;
 
 #define win_width 1200
 #define win_height 800
+
+typedef std::chrono::duration<float> float_seconds;
 
 using namespace fst;
 
@@ -80,7 +83,10 @@ static void glfw_key_callback(GLFWwindow* window, int key, int scancode, int act
                 glfwSetWindowShouldClose(window, GLFW_TRUE);
                 break;
             case GLFW_KEY_P:
-                fasta_ipr->togglePause();
+                fasta_ipr->togglePauseResume();
+                break;
+            case GLFW_KEY_S:
+                fasta_ipr->toggleStartStop();
                 break;
             case GLFW_KEY_D:
                 show_debug_window = !show_debug_window;
@@ -140,6 +146,10 @@ int main(int argc, char* argv[]){
         LOG_DBG << "Fasta debug IPR starting...";
 
         fasta_ipr = std::make_unique<FstRendererIPR>();
+        if(!fasta_ipr->init(win_width, win_height, 16)) {
+            LOG_FTL << "Unable to init Fasta IPR !!!";
+            exit(EXIT_FAILURE);
+        }
 
         GLuint vertex_buffer, vertex_shader, fragment_shader, program;
         GLint mvp_location, vpos_location, vcol_location;
@@ -234,13 +244,18 @@ int main(int argc, char* argv[]){
         mat4x4 m, p, mvp;
 
         // run ipr renderer
-        fasta_ipr->run(win_width, win_height, 16);
+        int samples = 16;
+        fasta_ipr->run();
 
         while (!glfwWindowShouldClose(window)) {
             glfwGetFramebufferSize(window, &width, &height);
             fasta_ipr->resize(width, height);
             ratio = width / (float) height;
 
+            if(!fasta_ipr->gl_mutex.try_lock_for(std::chrono::seconds(1)))
+                continue;
+
+            glfwMakeContextCurrent(window);
             glViewport(0, 0, width, height);
             glClearColor(0.15f, 0.6f, 0.4f, 1.0f); // nice green
             glClear(GL_COLOR_BUFFER_BIT);
@@ -263,7 +278,8 @@ int main(int argc, char* argv[]){
 
             if (show_debug_window) {
                 ImGui::Begin("Debug window", &show_debug_window);
-                ImGui::Text("This is some useful text.");
+                ImGui::Text("Window average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+                ImGui::SliderInt("Samples", &samples, 1, 128);
                 if (ImGui::Button("Close"))
                     show_debug_window = false;
                 ImGui::End();
@@ -273,8 +289,14 @@ int main(int argc, char* argv[]){
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
             glfwSwapBuffers(window);
+            
+            fasta_ipr->gl_mutex.unlock();
+
             glfwPollEvents();
         }
+
+        // delete ipr renderer
+        fasta_ipr.reset(nullptr);
 
         // Cleanup
         ImGui_ImplOpenGL3_Shutdown();
@@ -289,7 +311,7 @@ int main(int argc, char* argv[]){
 
     // Normal render process
     std::unique_ptr<FstRenderer> renderer = std::make_unique<FstRenderer>();
-    renderer->init();
+    renderer->init(800, 600, 16);
 
     /*
     FstIfd ifd_reader(in, renderer);

@@ -17,7 +17,7 @@ class Renderer {
 		Renderer();
 		~Renderer();
 
-		bool init();
+		bool init(uint width, uint height, uint samples);
 
 	private:
 		FstRenderer *_renderer;

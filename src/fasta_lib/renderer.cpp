@@ -5,138 +5,30 @@
 
 namespace fst {
 
-FstRenderer::FstRenderer()
-{
-	std::cout << "Fasta engine constructor called ..." << std::endl;
-	renderbuffer = 0;
-	initialized = false;
+FstRenderer::FstRenderer() {
+	LOG_DBG << "Fasta engine constructor called\n";
+	renderbuffer = nullptr;
+	_render_initialized = false;
+	_opengl_initialized = false;
 	current_time = 0;
+	ctx = new FstGLContext();
 	display = new FstDisplay();
-    std::cout << "Fasta engine constructed ..." << std::endl;
+    LOG_DBG << "Fasta engine constructed\n";
 }
 
 FstRenderer::~FstRenderer(){
-	std::cout << "Fasta engine destructor called ..." << std::endl;
+	LOG_DBG << "Fasta engine destructor called\n";
 
 	delete display;
 
 	if(renderbuffer!=0) delete renderbuffer;
 
-	if(initialized==true) {
-		#ifdef __APPLE__
-		CGLSetCurrentContext( NULL );
-  		CGLDestroyContext( ctx );
-		#elif __linux__
+	delete ctx;
 
-		#endif
-
-	}
-	std::cout << "Fasta engine destructor ..." << std::endl;
+	LOG_DBG << "Fasta engine destructed\n";
 }
 
-#ifdef __APPLE__
-bool FstRenderer::init(){
-	std::cout << "Fasta engine init on macos called ..." << std::endl;
-
-	CGLPixelFormatAttribute attributes[4] = {
-  		kCGLPFAAccelerated,   // no software rendering
-  		kCGLPFAOpenGLProfile, // core profile with the version stated below
-  		(CGLPixelFormatAttribute) kCGLOGLPVersion_3_2_Core,
-  		(CGLPixelFormatAttribute) 0
-	};
-
-	CGLPixelFormatObj pix;
-	CGLError errorCode;
-	GLint num; // stores the number of possible pixel formats
-	errorCode = CGLChoosePixelFormat( attributes, &pix, &num );
-	// add error checking here
-	errorCode = CGLCreateContext( pix, NULL, &ctx ); // second parameter can be another context for object sharing
-	// add error checking here
-	CGLDestroyPixelFormat( pix );
-
-	errorCode = CGLSetCurrentContext( ctx );
-	// add error checking here
-
-}
-#elif __linux__
-bool FstRenderer::init(){
-	fprintf(stdout, "Fasta render init started\n");
-
-	static int visual_attribs[] = {
-		None
-	};
-	
-	int context_attribs[] = {
-		GLX_CONTEXT_MAJOR_VERSION_ARB, 4,
-		GLX_CONTEXT_MINOR_VERSION_ARB, 1,
-		None
-	};
-
-	dpy = XOpenDisplay(NULL);
-	fbcount = 0;
-	fbc = NULL;
-
-	// open display
-    if ( ! (dpy = XOpenDisplay(NULL)) ){
-        fprintf(stderr, "Failed to open display\n");
-        return false;
-    }
-
-    // get framebuffer configs, any is usable (might want to add proper attribs)
-    if ( !(fbc = glXChooseFBConfig(dpy, DefaultScreen(dpy), visual_attribs, &fbcount) ) ){
-        fprintf(stderr, "Failed to get FBConfig\n");
-        return false;
-    }
- 
-    // get the required extensions
-    glXCreateContextAttribsARB = (glXCreateContextAttribsARBProc)glXGetProcAddressARB( (const GLubyte *) "glXCreateContextAttribsARB");
-    glXMakeContextCurrentARB = (glXMakeContextCurrentARBProc)glXGetProcAddressARB( (const GLubyte *) "glXMakeContextCurrent");
-    if ( !(glXCreateContextAttribsARB && glXMakeContextCurrentARB) ){
-        fprintf(stderr, "missing support for GLX_ARB_create_context\n");
-        XFree(fbc);
-        return false;
-    }
- 
-    // create a context using glXCreateContextAttribsARB
-    if ( !( ctx = glXCreateContextAttribsARB(dpy, fbc[0], 0, True, context_attribs)) ){
-        fprintf(stderr, "Failed to create opengl context\n");
-        XFree(fbc);
-        return false;
-    }
-
-	// create temporary pbuffer
-	int pbuffer_attribs[] = {
-		GLX_PBUFFER_WIDTH, 256,
-		GLX_PBUFFER_HEIGHT, 256,
-		None
-	};
-
-	pbuf = glXCreatePbuffer(dpy, fbc[0], pbuffer_attribs);
- 
-	XFree(fbc);
-	XSync(dpy, False);
-	
-	// try to make it the current context */
-	if ( !glXMakeContextCurrent(dpy, pbuf, pbuf, ctx) ){
-		// some drivers does not support context without default framebuffer, so fallback on using the default window.
-		if ( !glXMakeContextCurrent(dpy, DefaultRootWindow(dpy), DefaultRootWindow(dpy), ctx) ){
-			fprintf(stderr, "failed to make current\n");
-			return false;
-		}
-	}
-	
-	int gladInitRes = gladLoadGL();
-    if (!gladInitRes) {
-      	fprintf(stderr, "Unable to initialize glad\n");
-       	return false;
-    }
-
-    fprintf(stdout, "OpenGL vendor: %s\n", (const char*)glGetString(GL_VENDOR));
-
-	// check for maximum render buffers
-	glGetIntegerv ( GL_MAX_DRAW_BUFFERS_ARB, &maxDrawBuffers );
-	std::cout << "OpenGL maximum render buffers: " << maxDrawBuffers << std::endl;
-
+/*
     // Setup and compile our shaders
     if (!shaderGeometryPass.load("g_buffer.vs", "g_buffer.frag")) {
     	return false;
@@ -145,30 +37,55 @@ bool FstRenderer::init(){
     if (!shaderLightingPass.load("deferred_shading.vs", "deferred_shading.frag")) {
     	return false;
     }
+*/
 
-	std::cout << "Fasta engine initialised ..." << std::endl;
+bool FstRenderer::init(uint width, uint height, uint aa_samples){
+	// chack if GL is initialized
+	if(!ctx->init()){
+		LOG_FTL << "Unable to initialize OpenGL !!!\n";
+		return false;
+	}
 
-	initialized = true;
-	return initialized;
-}
-#endif
+	_sample_num = 0;
 
-void FstRenderer::_renderSample(uint sample, uint samples_total) {
-	LOG_DBG << "rendering sample " << sample << " of " << samples_total;
-}
+	// check if the same init requested
+	if (_render_initialized && _width==width && _height==height && _aa_samples==aa_samples ){
+		return _render_initialized;
+	}
 
-FstGBuffer* FstRenderer::renderFrame(uint width, uint height, uint aa_samples){
-	if(renderbuffer!=0){
+	_width = width;
+	_height = height;
+	_aa_samples = aa_samples;
+	_render_initialized = true;
+
+	if(renderbuffer!=nullptr){
 		// re-use existing render buffer
 		renderbuffer->resize(width, height); // it's ok since resize would do nothing if the size is not changing
 	} else {
-		renderbuffer = new FstGBuffer();
+		renderbuffer = new GPU_FrameBuffer();
 		if (!renderbuffer->init(width, height))
-			return nullptr;
+			_render_initialized = false;
+	}
+
+	return _render_initialized;
+}
+
+void FstRenderer::_renderSample() {
+	if (!_render_initialized) {
+		LOG_ERR << "Fasta renderer not initalized! Abort sample rendering...\n";
+	}
+
+	LOG_DBG << "rendering sample " << _sample_num << " out of " << _aa_samples;
+	_sample_num += 1;
+}
+
+GPU_FrameBuffer* FstRenderer::renderFrame(){
+	while (_sample_num < _aa_samples) {
+		_renderSample();
 	}
 	
 	// Define the viewport dimensions
-    glViewport(0, 0, width, height);
+    glViewport(0, 0, _width, _height);
 
     // Setup some OpenGL options
     glEnable(GL_DEPTH_TEST);

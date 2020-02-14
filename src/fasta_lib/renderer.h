@@ -6,30 +6,12 @@
 
 #include <glad/glad.h>
 
-#ifdef __APPLE__
-	#include <OpenGL/gl.h>
-	#include <OpenGL/OpenGL.h>
-	#include <OpenGL/CGLTypes.h>
-	#include <OpenGL/CGLCurrent.h>
-#elif __linux__
-	#include <X11/X.h>
-	#include <X11/Xlib.h> 
-	#include <GL/gl.h>
-	#include <GL/glx.h>
-#endif
-
-#include "fasta_lib/gbuffer.h"
+#include "fasta_lib/gl_context.h"
+#include "fasta_lib/gpu_frame_buffer.h"
 #include "fasta_lib/shader.h"
 #include "fasta_lib/object.h"
 #include "fasta_lib/light.h"
 #include "fasta_lib/display.h"
-
-#ifdef __linux__
-	typedef GLXContext (*glXCreateContextAttribsARBProc)(Display*, GLXFBConfig, GLXContext, Bool, const int*);
-	typedef Bool (*glXMakeContextCurrentARBProc)(Display*, GLXDrawable, GLXDrawable, GLXContext);
-	static glXCreateContextAttribsARBProc glXCreateContextAttribsARB = NULL;
-	static glXMakeContextCurrentARBProc glXMakeContextCurrentARB = NULL;
-#endif
 
 namespace fst {
 
@@ -41,9 +23,9 @@ class FstRenderer {
 	public:
 		FstRenderer();
 		~FstRenderer();
-		bool init();
+		bool init(uint width, uint height, uint aa_samples);
 
-		FstGBuffer *renderFrame(uint width, uint height, uint aa_samples);
+		GPU_FrameBuffer *renderFrame();
 		
 		FstDisplay	*getDisplay();
 
@@ -53,30 +35,22 @@ class FstRenderer {
 		uint getCompletedSamples() const;
 
 	private:
-		void _renderSample(uint sample, uint samples_total);
+		bool _init_GL();
+
+		void _renderSample();
 		bool _renderTile(uint xl, uint xr, uint yb, uint yt, uint tx, uint ty);
 
 		void _renderBackground();
 
 
-		FstGBuffer *renderbuffer;
+		GPU_FrameBuffer *renderbuffer;
 		FstDisplay *display;
 
 	private:
-		bool initialized;
+		bool _render_initialized;
+		bool _opengl_initialized;
 
-		#ifdef __APPLE__
-			CGLContextObj	ctx;
-		#elif __linux__
-			GLXContext 		ctx;
-
-			Display* 		dpy;
-	    	GLXFBConfig* 	fbc;
-	    	GLXPbuffer 		pbuf;
-	    #endif
-
-	    int fbcount;
-	    int	maxDrawBuffers;
+		FstGLContext 	*ctx;
 
 	private:
 	    FstShader shaderGeometryPass, shaderLightingPass;
@@ -89,6 +63,8 @@ class FstRenderer {
 	private:
 		uint _width;
 		uint _height;
+		uint _aa_samples;
+		uint _sample_num;
 
 };
 

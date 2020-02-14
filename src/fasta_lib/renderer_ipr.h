@@ -17,36 +17,49 @@
 namespace fst {
 
 class FstRendererIPR: public FstRenderer {
-	enum class State { RUNNING, PAUSED, STOPPED, DONE };
+	enum State { 
+		RUNNING, 
+		PAUSED, 
+		STOPPED, 
+		DONE 
+	};
 
 	public:
 		FstRendererIPR();
 		~FstRendererIPR();
 		
-		void run(uint width, uint height, uint samples);
+		bool init(uint width, uint height, uint samples);
+		void run();
 		void pause();
 		void resume();
-		void togglePause(); // pause/resume
+		void stop();
+		void togglePauseResume(); 	// pause/resume
+		void toggleStartStop(); 	// start/stop
 
 		void resize(uint width, uint height); // restarts ipr with new resolution
 
+	public:
+		std::timed_mutex gl_mutex;
+
 	private:
-		void renderSamples();
-		bool stopRequested();
+		void _renderSamples();
+		bool _isRunning();
 
 	private:
 		std::unique_ptr<std::thread> _render_thread;
 		FstRenderer *_renderer;
+		bool _renderer_initialized;
 
 	private:
 		uint _width;
 		uint _height;
 		uint _samples;
-		std::atomic<State> _state; // ipr state
+		std::atomic<State> 	_state; // ipr state
 
-		std::atomic<bool>  _pause_ipr; // request state
-		std::promise<void> _stopSignal;
-		std::future<void>  _futureObj;
+		std::atomic<bool>  	_pause_ipr; // request transition to state PAUSED
+		std::atomic<bool>	_stop_ipr;  // request transition to state STOPPED
+		std::promise<void> 	_stopSignal;
+		std::future<void>  	_futureObj;
 
 	private:
 		std::condition_variable _cv;

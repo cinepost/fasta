@@ -11,8 +11,8 @@ Renderer::~Renderer() {
 	delete _renderer;
 }
 
-bool Renderer::init() {
-    return _renderer->init();
+bool Renderer::init(uint width, uint height, uint samples) {
+    return _renderer->init(width, height, samples);
 }
 
 void export_FstRenderer() {

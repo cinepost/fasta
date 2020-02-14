@@ -6,49 +6,87 @@
 namespace fst {
 
 FstRendererIPR::FstRendererIPR(): _futureObj(_stopSignal.get_future()) {
-	std::cout << "Fasta IPR renderer constructor called." << std::endl;
+	LOG_DBG << "Fasta IPR renderer constructor called\n";
+	_renderer_initialized = false;
 	_renderer = new FstRenderer();
-    std::cout << "Fasta IPR renderer constructed." << std::endl;
+    LOG_DBG << "Fasta IPR renderer constructed\n";
 }
 
 FstRendererIPR::~FstRendererIPR(){
-	std::cout << "Fasta IPR renderer destructor called." << std::endl;
+	LOG_DBG << "Fasta IPR renderer destructor called\n";
+
+	if(_render_thread->joinable())
+		_render_thread->join();
 
 	if(_renderer!=nullptr) 
 		delete _renderer;
 
-	std::cout << "Fasta IPR renderer destructed." << std::endl;
+	LOG_DBG << "Fasta IPR renderer destructed\n";
 }
 
-void FstRendererIPR::renderSamples() {
-	while (stopRequested() == false) {
-		for(uint i=0; i < _samples; i++){
-			_state = State::RUNNING;
-	  		while(_pause_ipr){
-	  			_state = State::PAUSED;
-	     		std::unique_lock<std::mutex> lk(_m);
-	     		_cv.wait(lk);
-	     		lk.unlock();
-	  		}
-	  	_renderer->_renderSample(i, _samples);
-	  	std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+void FstRendererIPR::_renderSamples() {
+	for(uint i=0; i < _samples; i++){
+		_state = State::RUNNING;
+		if(_stop_ipr) {
+			_state = State::STOPPED;
+			LOG_DBG << "ipr stopped\n";
+			return;
 		}
-		_state = State::DONE;
-		break;
+  		while(_pause_ipr){
+  			_state = State::PAUSED;
+     		std::unique_lock<std::mutex> lk(_m);
+     		_cv.wait(lk);
+     		lk.unlock();
+  		}
+  	gl_mutex.lock();
+  	_renderer->_renderSample();
+  	gl_mutex.unlock();
+  	//std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	}
 
 	_state = State::DONE;
-	fprintf(stdout, "ipr done\n");
+	LOG_DBG << "ipr done\n";
+	return;
 }
 
-void FstRendererIPR::run(uint width, uint height, uint samples) {
-	fprintf(stdout, "ipr run\n" );
-	_width = width;
-	_height = height;
-	_samples = samples;
+bool FstRendererIPR::init(uint width, uint height, uint samples) {
+	_renderer_initialized = false;
+	gl_mutex.lock();
+	if (_renderer->init(width, height, samples)) {
+		_width = width;
+		_height = height;
+		_samples = samples;
+		_renderer_initialized = true;
+	}
+	gl_mutex.unlock();
+	return _renderer_initialized;
+}
+
+void FstRendererIPR::run() {
+	if (!_renderer_initialized) {
+		LOG_DBG << "Fasta IPR not initialized !!!";
+		return;
+	}
+
+	LOG_DBG << "ipr run\n";
 	_pause_ipr = false;
-	_render_thread = std::make_unique<std::thread>(std::bind(&FstRendererIPR::renderSamples, this));
-	_render_thread->detach();
+	_stop_ipr = false;
+	_render_thread = std::make_unique<std::thread>(std::bind(&FstRendererIPR::_renderSamples, this));
+}
+
+bool FstRendererIPR::_isRunning() {
+	std::lock_guard<std::mutex> lk(_m);
+	if (_state == State::RUNNING )
+		return true;
+
+	return false;
+}
+
+void FstRendererIPR::stop() {
+	std::lock_guard<std::mutex> lk(_m);
+	if (_state == State::RUNNING) {
+  		_stop_ipr=true;
+	}
 }
 
 void FstRendererIPR::pause() {
@@ -64,7 +102,7 @@ void FstRendererIPR::resume() {
   	LOG_DBG << "ipr resumed";
 }
 
-void FstRendererIPR::togglePause() {
+void FstRendererIPR::togglePauseResume() {
 	if (_state == State::PAUSED) {
 		resume();
 	} else if (_state == State::RUNNING) {
@@ -72,19 +110,29 @@ void FstRendererIPR::togglePause() {
 	}
 }
 
-bool FstRendererIPR::stopRequested() {
-	// checks if value in future object is available
-	if (_futureObj.wait_for(std::chrono::milliseconds(1)) == std::future_status::timeout) return false;
-	return true;
+void FstRendererIPR::toggleStartStop() {
+	if (_state == State::RUNNING) {
+		stop();
+	} else if (_state == State::STOPPED) {
+		run();
+	}
 }
 
 void FstRendererIPR::resize(uint width, uint height) {
 	//std::lock_guard<std::mutex> lk(_m);
-	if ((_state == State::RUNNING) && ((_width != width) || (_height != height))){
-		fprintf(stdout, "ipr resize\n" );
-		//_stopSignal.set_value();
-		//_render_thread->join();
-		//run(width, height, _samples);
+	if (!_renderer_initialized)
+		return;
+
+	if ((_width != width) || (_height != height)) {
+		stop();
+		if(_render_thread->joinable()) {
+			LOG_DBG << "wait join\n";
+			_render_thread->join();
+			LOG_DBG << "joined\n";
+		}
+		if(init(width, height, _samples)) {
+			run();
+		}
 	}
 }
 
