@@ -13,6 +13,8 @@
 	#include <GL/glx.h>
 #endif
 
+#include "fasta_lib/gl_info.h"
+
 #ifdef __linux__
 	typedef GLXContext (*glXCreateContextAttribsARBProc)(Display*, GLXFBConfig, GLXContext, Bool, const int*);
 	typedef Bool (*glXMakeContextCurrentARBProc)(Display*, GLXDrawable, GLXDrawable, GLXContext);
@@ -22,16 +24,17 @@
 
 namespace fst {
 
-class FstGLContext {
+class GL_Context {
 	public:
-		FstGLContext();
-		~FstGLContext();
+		GL_Context();
+		~GL_Context();
 
 		bool makeCurrent();
 		bool init();
 
 	private:
 		bool _initialized;
+		GL_Info	*_gl_info;
 
 	private:
 		#ifdef __APPLE__

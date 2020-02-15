@@ -7,10 +7,33 @@
 
 namespace fst {
 
+class GPU_TextureManager;
+
+struct TextureInfo {
+	uint width;
+	uint height;
+	uint comps;
+
+	uint mem_used; // bytes
+};
+
 class GPU_Texture {
+	friend class GPU_TextureManager; //only GPU_TextureManager can create instances of GPU_Texture
+	
 	public:
-		GPU_Texture();
+		void bind();
+		void unbind();
+
+	private:
+		GPU_Texture(const GLuint _glo);
 		~GPU_Texture();
+
+	private:
+		TextureInfo _srctex_info;
+		TextureInfo _gputex_info;
+
+	private:
+		GLuint _glo;
 };
 
 } // namespace

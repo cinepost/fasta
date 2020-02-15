@@ -1,0 +1,49 @@
+#ifndef __GPU_TEXTURE_MANAGER_H__
+#define __GPU_TEXTURE_MANAGER_H__
+
+#include <vector>
+#include <string>
+
+#include <glad/glad.h>
+#include <flags/flags.hpp>
+
+#include "fasta_lib/gpu_texture.h"
+
+namespace fst {
+
+enum class TexFlags { 
+	COMPRESS = 1 << 0, 
+	CACHE_TO_DISK = 1 << 1 
+};
+
+class GPU_TextureManager {
+	public:
+		GPU_TextureManager();
+		~GPU_TextureManager();
+
+	public:
+		GPU_Texture *textureFromImage2D(const std::string &filename, TexFlags flags);
+		void printStats();
+
+	private:
+		void _saveCompressedTexture(const std::string &filename, GLint width, GLint height,
+			GLenum compressedFormat, GLint size, GLubyte *pData);
+		
+		GLubyte *_loadCompressedTexture(const std::string &filename, GLint *width, GLint *height, 
+			GLenum *compressed_format, GLint *size);
+
+	private:
+		std::vector<GPU_Texture*> 	_gpu_textures;
+
+	private:
+		// stats
+		uint _cpu_mem_used; // bytes
+		uint _gpu_mem_used; // bytes
+
+};
+
+} // namespace
+
+ALLOW_FLAGS_FOR_ENUM(fst::TexFlags)
+
+#endif // __GPU_TEXTURE_MANAGER_H__

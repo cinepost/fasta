@@ -18,3 +18,11 @@
 	path = third_party/blender
 	url = https://github.com/blender/blender.git
 	branch = blender-v2.81-release
+[submodule "third_party/stb"]
+	path = third_party/stb
+	url = https://github.com/nothings/stb.git
+	branch = master
+[submodule "third_party/enum-flags"]
+	path = third_party/enum-flags
+	url = https://github.com/grisumbras/enum-flags.git
+	branch = master

@@ -1,24 +1,13 @@
 #include "fasta_py/renderer.h"
 
 
-namespace fasta_module {
+namespace fst { namespace py {
 
-Renderer::Renderer() {
-	_renderer = new FstRenderer();
-}
 
-Renderer::~Renderer() {
-	delete _renderer;
-}
-
-bool Renderer::init(uint width, uint height, uint samples) {
-    return _renderer->init(width, height, samples);
-}
-
-void export_FstRenderer() {
-	boost::python::class_<Renderer, boost::noncopyable>("FstRenderer")
-		.def("init", &Renderer::init)
+void export_Renderer() {
+	boost::python::class_<FstRenderer, boost::noncopyable>("Renderer")
+		.def("init", &FstRenderer::init)
 		;
 }
 
-} // namespace
+}} // namespace

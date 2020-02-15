@@ -7,13 +7,16 @@
 
 #include "fasta_py/fasta_module.h"
 #include "fasta_py/renderer.h"
+#include "fasta_py/gpu_texture.h"
 
-namespace fasta_module {
+namespace fst { namespace py {
 
 void export_FstRenderer();
 
 BOOST_PYTHON_MODULE(fasta){
-  export_FstRenderer();
+  export_Renderer();
+  export_GPU_Texture();
+  export_GPU_TextureManager();
 }
 
-}
+}}

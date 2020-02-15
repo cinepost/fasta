@@ -8,23 +8,13 @@
 #include "fasta_lib/renderer.h"
 
 
-namespace fasta_module {
+namespace fst { namespace py {
 
 using namespace fst;
 
-class Renderer {
-	public:
-		Renderer();
-		~Renderer();
 
-		bool init(uint width, uint height, uint samples);
+void export_Renderer();
 
-	private:
-		FstRenderer *_renderer;
-};
-
-void export_FstRenderer();
-
-}
+}}
 
 #endif //__FASTA_PY_RENDERER_H__

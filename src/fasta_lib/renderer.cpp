@@ -11,7 +11,7 @@ FstRenderer::FstRenderer() {
 	_render_initialized = false;
 	_opengl_initialized = false;
 	current_time = 0;
-	ctx = new FstGLContext();
+	ctx = new GL_Context();
 	display = new FstDisplay();
     LOG_DBG << "Fasta engine constructed\n";
 }

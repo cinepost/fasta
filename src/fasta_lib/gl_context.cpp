@@ -5,25 +5,30 @@
 
 namespace fst {
 
-FstGLContext::FstGLContext() {
-	_initialized = false;	
+GL_Context::GL_Context() {
+	_initialized = false;
+	_gl_info = nullptr;	
 }
 
-FstGLContext::~FstGLContext() {
+GL_Context::~GL_Context() {
 	LOG_DBG << "Fasta OpenGL context destructor called";
+
+	if( _gl_info ) 
+		delete _gl_info;
+
 	if( _initialized ) {
 		#ifdef __APPLE__
 			CGLSetCurrentContext( NULL );
   			CGLDestroyContext( ctx );
 		#elif __linux__
-
+  			
 		#endif
 	}
 	LOG_DBG << "Fasta OpenGL context destructed";
 }
 
 #ifdef __APPLE__
-bool FstGLContext::init(){
+bool GL_Context::init(){
 	if (_initialized)
 		return true;
 
@@ -32,7 +37,7 @@ bool FstGLContext::init(){
 	CGLPixelFormatAttribute attributes[4] = {
   		kCGLPFAAccelerated,   // no software rendering
   		kCGLPFAOpenGLProfile, // core profile with the version stated below
-  		(CGLPixelFormatAttribute) kCGLOGLPVersion_3_2_Core,
+  		(CGLPixelFormatAttribute) kCGLOGLPVersion_GL4_Core,
   		(CGLPixelFormatAttribute) 0
 	};
 
@@ -40,15 +45,31 @@ bool FstGLContext::init(){
 	CGLError errorCode;
 	GLint num; // stores the number of possible pixel formats
 	errorCode = CGLChoosePixelFormat( attributes, &pix, &num );
-	// add error checking here
+	// Add error checking here
+	
 	errorCode = CGLCreateContext( pix, NULL, &ctx ); // second parameter can be another context for object sharing
-	// add error checking here
+	// Add error checking here
+	
 	CGLDestroyPixelFormat( pix );
 
-	// try to make it the current context */
+	// Try to make it the current context
 	if( !makeCurrent() ) {
 		return false;
 	}
+
+	// Try to load GLAD
+	int gladInitRes = gladLoadGL();
+    if (!gladInitRes) {
+      	LOG_FTL << "Unable to load GLAD !";
+       	return false;
+    }
+
+	// Try to load GL info
+	_gl_info = new GL_Info();
+	if (!_gl_info->load()) {
+		LOG_WRN << "Unable to load OpenGL information.";
+	}
+	_gl_info->printInfo();
 
 	_initialized = true;
 	return _initialized;
@@ -56,7 +77,7 @@ bool FstGLContext::init(){
 	LOG_DBG << "Fasta OpenGL context on MacOS initalized";
 }
 #elif __linux__
-bool FstGLContext::init(){
+bool GL_Context::init(){
 	if (_initialized)
 		return true;
 
@@ -77,13 +98,13 @@ bool FstGLContext::init(){
 
 	// open display
     if ( ! (dpy = XOpenDisplay(NULL)) ){
-        fprintf(stderr, "Failed to open display\n");
+        LOG_FTL << "Failed to open display";
         return false;
     }
 
     // get framebuffer configs, any is usable (might want to add proper attribs)
     if ( !(fbc = glXChooseFBConfig(dpy, DefaultScreen(dpy), visual_attribs, &fbcount) ) ){
-        fprintf(stderr, "Failed to get FBConfig\n");
+        LOG_FTL << "Failed to get FBConfig";
         return false;
     }
  
@@ -91,14 +112,14 @@ bool FstGLContext::init(){
     glXCreateContextAttribsARB = (glXCreateContextAttribsARBProc)glXGetProcAddressARB( (const GLubyte *) "glXCreateContextAttribsARB");
     glXMakeContextCurrentARB = (glXMakeContextCurrentARBProc)glXGetProcAddressARB( (const GLubyte *) "glXMakeContextCurrent");
     if ( !(glXCreateContextAttribsARB && glXMakeContextCurrentARB) ){
-        fprintf(stderr, "missing support for GLX_ARB_create_context\n");
+        LOG_FTL << "Missing support for GLX_ARB_create_context";
         XFree(fbc);
         return false;
     }
  
     // create a context using glXCreateContextAttribsARB
     if ( !( ctx = glXCreateContextAttribsARB(dpy, fbc[0], 0, True, context_attribs)) ){
-        fprintf(stderr, "Failed to create opengl context\n");
+        LOG_FTL << "Failed to create opengl context";
         XFree(fbc);
         return false;
     }
@@ -114,20 +135,32 @@ bool FstGLContext::init(){
  
 	XFree(fbc);
 	XSync(dpy, False);
+
+	// Verify created context is a direct or indirect
+  	if ( ! glXIsDirect ( dpy, ctx ) ) {
+    	LOG_DBG << "Indirect GLX rendering context obtained";
+  	} else {
+    	LOG_DBG << "Direct GLX rendering context obtained";
+  	}
 	
-	// try to make it the current context */
+	// Try to make it the current context
 	if( !makeCurrent() ) {
 		return false;
 	}
-	
 
+	// Try to load GLAD
 	int gladInitRes = gladLoadGL();
     if (!gladInitRes) {
-      	fprintf(stderr, "Unable to initialize glad\n");
+      	LOG_FTL << "Unable to load GLAD !";
        	return false;
     }
 
-    fprintf(stdout, "OpenGL vendor: %s\n", (const char*)glGetString(GL_VENDOR));
+	// Try to load GL info
+	_gl_info = new GL_Info();
+	if (!_gl_info->load()) {
+		LOG_WRN << "Unable to load OpenGL information.";
+	}
+	_gl_info->printInfo();
 
 	// check for maximum render buffers
 	int	maxDrawBuffers;
@@ -141,7 +174,7 @@ bool FstGLContext::init(){
 }
 #endif
 
-bool FstGLContext::makeCurrent() {
+bool GL_Context::makeCurrent() {
 #ifdef __APPLE__
 	CGLError errorCode;
 	errorCode = CGLSetCurrentContext( ctx );

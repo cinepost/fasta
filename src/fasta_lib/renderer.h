@@ -50,7 +50,7 @@ class FstRenderer {
 		bool _render_initialized;
 		bool _opengl_initialized;
 
-		FstGLContext 	*ctx;
+		GL_Context 	*ctx;
 
 	private:
 	    FstShader shaderGeometryPass, shaderLightingPass;
