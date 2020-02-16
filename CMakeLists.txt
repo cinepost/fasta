@@ -135,8 +135,11 @@ add_subdirectory( src/fasta_py ) # python 3 module
 # fasta renderer app(s)
 add_subdirectory( src/fasta_cmd ) # command line application
 
-#install(
-#	DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/cfs 
-#	DESTINATION ${CMAKE_INSTALL_PREFIX}
-#	FILES_MATCHING PATTERN "*"
-#)
+install(
+	DIRECTORY 
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests
+    ${CMAKE_CURRENT_SOURCE_DIR}/contrib
+	DESTINATION ${CMAKE_INSTALL_PREFIX}
+  USE_SOURCE_PERMISSIONS
+  FILES_MATCHING PATTERN "*"
+)

@@ -1,8 +1,10 @@
 #ifndef __GPU_TEXTURE_MANAGER_H__
 #define __GPU_TEXTURE_MANAGER_H__
 
+#include <utility>
 #include <vector>
 #include <string>
+#include <map>
 
 #include <glad/glad.h>
 #include <flags/flags.hpp>
@@ -11,10 +13,12 @@
 
 namespace fst {
 
-enum class TexFlags { 
+enum TexFlags { 
 	COMPRESS = 1 << 0, 
 	CACHE_TO_DISK = 1 << 1 
 };
+
+typedef std::pair<std::string, TexFlags> TexKey;
 
 class GPU_TextureManager {
 	public:
@@ -33,7 +37,7 @@ class GPU_TextureManager {
 			GLenum *compressed_format, GLint *size);
 
 	private:
-		std::vector<GPU_Texture*> 	_gpu_textures;
+		std::map<TexKey, GPU_Texture*> 	_gpu_textures;
 
 	private:
 		// stats

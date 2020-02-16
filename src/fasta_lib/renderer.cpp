@@ -6,18 +6,24 @@
 namespace fst {
 
 FstRenderer::FstRenderer() {
-	LOG_DBG << "Fasta engine constructor called\n";
+	LOG_DBG << "Fasta engine constructor called";
 	renderbuffer = nullptr;
+	_gpu_texture_manager = nullptr;
 	_render_initialized = false;
-	_opengl_initialized = false;
 	current_time = 0;
-	ctx = new GL_Context();
+
+	ctx = _init_GL_Context();
+	if (ctx) {
+		_gpu_texture_manager = new GPU_TextureManager();
+	}
+	
 	display = new FstDisplay();
-    LOG_DBG << "Fasta engine constructed\n";
+
+    LOG_DBG << "Fasta engine constructed";
 }
 
 FstRenderer::~FstRenderer(){
-	LOG_DBG << "Fasta engine destructor called\n";
+	LOG_DBG << "Fasta engine destructor called";
 
 	delete display;
 
@@ -25,7 +31,7 @@ FstRenderer::~FstRenderer(){
 
 	delete ctx;
 
-	LOG_DBG << "Fasta engine destructed\n";
+	LOG_DBG << "Fasta engine destructed";
 }
 
 /*
@@ -39,10 +45,21 @@ FstRenderer::~FstRenderer(){
     }
 */
 
+GL_Context *FstRenderer::_init_GL_Context() {
+	GL_Context *gl_context = new GL_Context();
+	if (!gl_context->init()) {
+		LOG_FTL << "Unable to initialize OpenGL rendering context !!!";
+		delete gl_context;
+		return nullptr;
+	}
+	_opengl_initialized = true;
+	return gl_context;
+}
+
 bool FstRenderer::init(uint width, uint height, uint aa_samples){
 	// chack if GL is initialized
-	if(!ctx->init()){
-		LOG_FTL << "Unable to initialize OpenGL !!!\n";
+	if(!ctx){
+		LOG_FTL << "No OpenGL context !!!";
 		return false;
 	}
 
@@ -115,6 +132,14 @@ bool FstRenderer::_renderTile(uint xl, uint xr, uint yb, uint yt, uint tx, uint 
 
 uint FstRenderer::getCompletedSamples() const {
 	return 12;
+}
+
+GPU_TextureManager *FstRenderer::textureManager() {
+	if (!ctx) {
+		LOG_FTL << "No OpenGL context !!!";
+		return nullptr;
+	}
+	return _gpu_texture_manager;
 }
 
 FstObject* FstRenderer::newObject(){

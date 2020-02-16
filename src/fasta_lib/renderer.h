@@ -8,6 +8,7 @@
 
 #include "fasta_lib/gl_context.h"
 #include "fasta_lib/gpu_frame_buffer.h"
+#include "fasta_lib/gpu_texture_manager.h"
 #include "fasta_lib/shader.h"
 #include "fasta_lib/object.h"
 #include "fasta_lib/light.h"
@@ -26,6 +27,7 @@ class FstRenderer {
 		bool init(uint width, uint height, uint aa_samples);
 
 		GPU_FrameBuffer *renderFrame();
+		GPU_TextureManager *textureManager();
 		
 		FstDisplay	*getDisplay();
 
@@ -35,7 +37,7 @@ class FstRenderer {
 		uint getCompletedSamples() const;
 
 	private:
-		bool _init_GL();
+		GL_Context *_init_GL_Context();
 
 		void _renderSample();
 		bool _renderTile(uint xl, uint xr, uint yb, uint yt, uint tx, uint ty);
@@ -51,6 +53,7 @@ class FstRenderer {
 		bool _opengl_initialized;
 
 		GL_Context 	*ctx;
+		GPU_TextureManager *_gpu_texture_manager;
 
 	private:
 	    FstShader shaderGeometryPass, shaderLightingPass;

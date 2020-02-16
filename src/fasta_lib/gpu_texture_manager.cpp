@@ -9,7 +9,9 @@
 namespace fst {
 
 GPU_TextureManager::GPU_TextureManager() {
+	LOG_DBG << "Fasta GPU_TextureManager constructor called";
 
+	LOG_DBG << "Fasta GPU_TextureManager constructed";
 }
 
 GPU_TextureManager::~GPU_TextureManager() {
@@ -17,6 +19,14 @@ GPU_TextureManager::~GPU_TextureManager() {
 }
 
 GPU_Texture *GPU_TextureManager::textureFromImage2D(const std::string &filename, TexFlags flags) {
+	TexKey tex_key(filename, flags);
+
+	// Retrun cached texture if present
+	if (_gpu_textures.count(tex_key) > 0) {
+		LOG_DBG << "GPU texture for \"" << filename << "\" already loaded";
+		return _gpu_textures.at(tex_key);
+	}
+
 	int image_width, image_height, image_comps;
 	unsigned char* image_data = stbi_load(filename.c_str(), &image_width, &image_height, &image_comps, STBI_rgb_alpha);
 	if(!image_data) {
@@ -55,11 +65,20 @@ GPU_Texture *GPU_TextureManager::textureFromImage2D(const std::string &filename,
    	}
 
    	// Load image data to GPU
-    glTexImage2D(GL_TEXTURE_2D, 0, format, image_width, image_height, 0, internal_format, GL_UNSIGNED_BYTE, image_data);
+    glTexImage2D(GL_TEXTURE_2D, 0, internal_format, image_width, image_height, 0, format, GL_UNSIGNED_BYTE, image_data);
+
+    if ( do_compression ) {
+    	// Check texture was successfully compressed
+    	GLint texture_compressed = 0;
+    	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_COMPRESSED, &texture_compressed);
+    	if (texture_compressed != GL_TRUE) {
+    		LOG_ERR << "Error compressing texture \"" << filename << "\" !";
+    	}
+    }
 
     // If we did texture compression, write(cache) the compressed image to disk
    	if ( do_compression && flags & TexFlags::CACHE_TO_DISK) {
-   		GLint compressed_size;
+   		GLint compressed_size = 0;
    		glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_COMPRESSED_IMAGE_SIZE, &compressed_size);
    	
    		// Allocate a buffer to read back the compressed texture.
@@ -67,6 +86,9 @@ GPU_Texture *GPU_TextureManager::textureFromImage2D(const std::string &filename,
 
     	// Read back the compressed texture.
     	glGetCompressedTexImage(GL_TEXTURE_2D, 0, compressed_bytes);
+
+    	LOG_DBG << "Read back " << compressed_size << " bytes of compressed texture data from GPU for \"" + filename + "\"";
+    	LOG_DBG << "Uncompressed size " << image_width * image_height * image_comps << " bytes";
 
     	// Save the texture to a file.
     	_saveCompressedTexture(filename + ".fct", image_width, image_height, internal_format, compressed_size, compressed_bytes);
@@ -85,6 +107,7 @@ GPU_Texture *GPU_TextureManager::textureFromImage2D(const std::string &filename,
 
 	LOG_DBG << "Texture \"" << filename << "\" loaded to GPU" << (do_compression ? " with in-place compression" : "");
 
+	_gpu_textures.insert(std::make_pair(tex_key, gpu_tex));
 	return gpu_tex;
 }
 
@@ -105,6 +128,7 @@ void GPU_TextureManager::_saveCompressedTexture(const std::string &filename, GLi
    	fwrite(info, 4, 4, pFile);
    	fwrite(pData, size, 1, pFile);
    	fclose(pFile);
+   	LOG_DBG << "Compressed GPU texture ( " << size << " bytes) saved to \"" << filename << "\"";
 }
 
 GLubyte *GPU_TextureManager::_loadCompressedTexture(const std::string &filename, GLint *width, GLint *height, 

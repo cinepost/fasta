@@ -24,8 +24,12 @@
 
 namespace fst {
 
+class FstRenderer;
+
 class GL_Context {
-	public:
+	friend class FstRenderer;
+
+	private:
 		GL_Context();
 		~GL_Context();
 
