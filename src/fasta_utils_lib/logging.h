@@ -24,7 +24,7 @@
 #define LOG_ERR BOOST_LOG_SEV(fst::ut::log::global_logger::get(), boost::log::trivial::error)
 #define LOG_FTL BOOST_LOG_SEV(fst::ut::log::global_logger::get(), boost::log::trivial::fatal)
 
-namespace fst::ut::log {
+namespace fst { namespace ut { namespace log {
 
 enum severity_level {
     trace,
@@ -51,6 +51,6 @@ void init_console_log();
 // Initialize/add file logger sink
 void init_file_log(const std::string& logfilename);
 
-}
+}}} // namespace
 
 #endif // __FASTA_UTILS_LOGGING_H__

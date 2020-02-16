@@ -1,6 +1,6 @@
 #include "fasta_utils_lib/logging.h"
 
-namespace fst::ut::log {
+namespace fst { namespace ut { namespace log {
 
 // Initialize console logger
 void init_console_log() {
@@ -48,4 +48,4 @@ void init_file_log(const std::string& logfilename) {
     boost::log::core::get()->add_sink(sink);
 }
 
-}
+}}} // namespace
