@@ -2,6 +2,7 @@
 
 #include "fasta_lib/gpu_texture_manager.h"
 #include "fasta_utils_lib/logging.h"
+#include "fasta_utils_lib/vfs.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
@@ -28,7 +29,7 @@ GPU_Texture *GPU_TextureManager::textureFromImage2D(const std::string &filename,
 	}
 
 	int image_width, image_height, image_comps;
-	unsigned char* image_data = stbi_load(filename.c_str(), &image_width, &image_height, &image_comps, STBI_rgb_alpha);
+	unsigned char* image_data = stbi_load(filename.c_str(), &image_width, &image_height, &image_comps, 0);
 	if(!image_data) {
     	LOG_FTL << "Failed to load texture: " << filename << "!!!";
     	return nullptr;
@@ -53,19 +54,49 @@ GPU_Texture *GPU_TextureManager::textureFromImage2D(const std::string &filename,
 	// Prepare formats according to our source image  
 	bool do_compression = flags & TexFlags::COMPRESS ? true: false;
    	GLenum format, internal_format;
-   	if (image_comps == 3) {
+
+   	LOG_DBG << "Texture image read components: " << image_comps;
+
+   	if (image_comps == 1) {
+   		// greyscale
+   		format = internal_format = GL_RED;
+   		if (do_compression)
+   			internal_format = GL_COMPRESSED_RED_RGTC1;
+   	}
+   	else if (image_comps == 2) {
+   		// greyscale + alpha
+   		format = internal_format = GL_RG;
+   		if (do_compression)
+   			internal_format = GL_COMPRESSED_RG_RGTC2;
+   	}
+   	else if (image_comps == 3) {
+   		// rgb
     	format = internal_format = GL_RGB;
     	if (do_compression)
     		internal_format = GL_COMPRESSED_RGB_S3TC_DXT1_EXT;
    	}
    	else if (image_comps == 4) {
+    	// rgba
     	format = internal_format = GL_RGBA;
     	if (do_compression)
     		internal_format = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
    	}
 
-   	// Load image data to GPU
-    glTexImage2D(GL_TEXTURE_2D, 0, internal_format, image_width, image_height, 0, format, GL_UNSIGNED_BYTE, image_data);
+   	std::string compressed_filename = filename + ".fct";
+   	if (do_compression && ut::vfs::fileExist(compressed_filename)) {
+   		// Check for disk cached compressed texture
+   		LOG_DBG << "Loading compressed texture \"" << compressed_filename <<  "\" from disk cache";
+   		GLint tex_width, tex_height, tex_data_size;
+   		GLubyte *compressed_tex_data = _loadCompressedTexture(compressed_filename,tex_width, tex_height, internal_format, tex_data_size);
+   		if (compressed_tex_data) {
+   			glCompressedTexImage2D(GL_TEXTURE_2D, 0, internal_format, tex_width, tex_height, 0, tex_data_size, compressed_tex_data);
+   			free(compressed_tex_data);
+   		}
+   		do_compression = false; // cached texture was already loaded
+   	} else {
+   		// Load uncompressed image data to GPU and compress it
+    	glTexImage2D(GL_TEXTURE_2D, 0, internal_format, image_width, image_height, 0, format, GL_UNSIGNED_BYTE, image_data);
+   	}
 
     if ( do_compression ) {
     	// Check texture was successfully compressed
@@ -131,8 +162,8 @@ void GPU_TextureManager::_saveCompressedTexture(const std::string &filename, GLi
    	LOG_DBG << "Compressed GPU texture ( " << size << " bytes) saved to \"" << filename << "\"";
 }
 
-GLubyte *GPU_TextureManager::_loadCompressedTexture(const std::string &filename, GLint *width, GLint *height, 
-	GLenum *compressed_format, GLint *size) {
+GLubyte *GPU_TextureManager::_loadCompressedTexture(const std::string &filename, GLint &width, GLint &height, 
+	GLenum &compressed_format, GLint &size) {
    	FILE *pFile = fopen(filename.c_str(), "rb");
    	
    	if (!pFile)
@@ -141,13 +172,13 @@ GLubyte *GPU_TextureManager::_loadCompressedTexture(const std::string &filename,
    	GLuint info[4];
 
    	fread(info, 4, 4, pFile);
-   	*width = info[0];
-   	*height = info[1];
-   	*compressed_format = info[2];
-   	*size = info[3];
+   	width = info[0];
+   	height = info[1];
+   	compressed_format = info[2];
+   	size = info[3];
 
-	GLubyte *pData = reinterpret_cast<GLubyte *>(malloc(*size));
-   	fread(pData, *size, 1, pFile);
+	GLubyte *pData = reinterpret_cast<GLubyte *>(malloc(size));
+   	fread(pData, size, 1, pFile);
    	fclose(pFile);
    	return pData;
    // Free pData when done...

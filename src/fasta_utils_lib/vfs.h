@@ -10,6 +10,7 @@
 namespace fst { namespace ut { namespace vfs {
 
 std::time_t fileModificationTime(const std::string &filename);
+bool fileExist(const std::string &filename);
 
 }}} // namespace
 

@@ -3,7 +3,7 @@
 
 namespace fst { namespace ut { namespace vfs {
 
-inline std::time_t fileModificationTime(const std::string &filename) {
+std::time_t fileModificationTime(const std::string &filename) {
 	boost::filesystem::path filepath(filename);
 	if ( boost::filesystem::exists( filepath ) ) {
     	return boost::filesystem::last_write_time(filepath);
@@ -11,6 +11,11 @@ inline std::time_t fileModificationTime(const std::string &filename) {
 
 	LOG_ERR << "Could not find file: " << filename; 
 	return 0;
+}
+
+bool fileExist(const std::string &filename) {
+	//boost::filesystem::path filepath(filename);
+	return boost::filesystem::exists( filename );
 }
 
 }}} // namespace

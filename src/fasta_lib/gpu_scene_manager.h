@@ -33,8 +33,8 @@ class GPU_TextureManager {
 		void _saveCompressedTexture(const std::string &filename, GLint width, GLint height,
 			GLenum compressedFormat, GLint size, GLubyte *pData);
 		
-		GLubyte *_loadCompressedTexture(const std::string &filename, GLint &width, GLint &height, 
-			GLenum &compressed_format, GLint &size);
+		GLubyte *_loadCompressedTexture(const std::string &filename, GLint *width, GLint *height, 
+			GLenum *compressed_format, GLint *size);
 
 	private:
 		std::map<TexKey, GPU_Texture*> 	_gpu_textures;
