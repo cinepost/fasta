@@ -3,7 +3,11 @@ file( GLOB SOURCES
     ${PROJECT_SOURCE_DIR}/third_party/glad/src/glad.c
 )
 
-# FindOpenGL
+set( CMAKE_MODULE_PATH 
+    ${CMAKE_SOURCE_DIR}/cmake/modules
+)
+
+# Find OpenGL
 set( OpenGL_GL_PREFERENCE "GLVND" )
 find_package(OpenGL REQUIRED)
 if (OpenGL_FOUND)
@@ -11,14 +15,19 @@ if (OpenGL_FOUND)
     link_libraries(${OPENGL_LIBRARIES})
 endif()
 
-# find boost libs
+# Find Boost libs
 find_package( Boost COMPONENTS log REQUIRED )
 include_directories( ${Boost_INCLUDE_DIRS} )
 
-# we will use static libs
+# We use Boost static libs
 add_definitions(-DBOOST_LOG_DYN_LINK)
 
 add_library( fasta_lib SHARED ${SOURCES} ${HEADERS} )
+
+# Find OpenImageIO
+find_package( OpenImageIO REQUIRED)
+include_directories(${OIIO_INCLUDE_DIRS})
+link_libraries(${OIIO_LIBRARIES})
 
 target_link_libraries(
     fasta_lib
