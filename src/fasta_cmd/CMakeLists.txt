@@ -5,7 +5,7 @@ set (SOURCES
 	${PROJECT_SOURCE_DIR}/third_party/imgui/imgui_draw.cpp
 	${PROJECT_SOURCE_DIR}/third_party/imgui/imgui_widgets.cpp
 	${PROJECT_SOURCE_DIR}/third_party/imgui/examples/imgui_impl_glfw.cpp
-	${PROJECT_SOURCE_DIR}/third_party/imgui/examples/imgui_impl_opengl3.cpp
+	${PROJECT_SOURCE_DIR}/third_party/imgui/examples/imgui_impl_vulkan.cpp
 )
 
 # ImGui
@@ -17,12 +17,18 @@ pkg_search_module(GLFW REQUIRED glfw3)
 include_directories(${GLFW_INCLUDE_DIRS})
 link_libraries(${GLFW_LIBRARIES})
 
-# Find OpenGL
-set( OpenGL_GL_PREFERENCE "GLVND" )
-find_package(OpenGL REQUIRED)
-if (OpenGL_FOUND)
-	include_directories(${OPENGL_INCLUDE_DIRS})
-	link_libraries(${OPENGL_LIBRARIES}) # OpenGL::GLX)
+# Use FindVulkan module added with CMAKE 3.7
+if (NOT CMAKE_VERSION VERSION_LESS 3.7.0)
+	message(STATUS "Using module to find Vulkan")
+	find_package(Vulkan)
+endif()
+
+if (NOT Vulkan_FOUND)
+	find_library(Vulkan_LIBRARY NAMES vulkan HINTS "$ENV{VULKAN_SDK}/lib" "${CMAKE_SOURCE_DIR/libs/vulkan}" REQUIRED)
+	if (Vulkan_LIBRARY)
+		set(Vulkan_FOUND OK)
+		message("Using bundled vulkan library version")
+	endif()
 endif()
 
 # Find BOOST
@@ -46,6 +52,7 @@ target_link_libraries( fasta_cmd
 	fasta_utils_lib 
 	Boost::log 
 	Boost::program_options 
+	${Vulkan_LIBRARY}
 )
 
 install(TARGETS fasta_cmd DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
