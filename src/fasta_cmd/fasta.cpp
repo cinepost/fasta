@@ -19,6 +19,9 @@
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
 
+#include "fasta_lib/base/VulkanModel.hpp"
+#include "fasta_lib/base/VulkanBuffer.hpp"
+
 #include "imgui/imgui.h"
 #include "imgui/examples/imgui_impl_glfw.h"
 #include "imgui/examples/imgui_impl_vulkan.h"
@@ -65,7 +68,7 @@ static bool                     g_SwapChainRebuild = false;
 static int                      g_SwapChainResizeWidth = 0;
 static int                      g_SwapChainResizeHeight = 0;
 
-void print_usage() {
+void printUsage() {
     std::cout << "Usage: fasta [options] [ifd] [outputimage]\n" << std::endl;
 
     std::cout << "Reads an scene from standard input and renders the image described.\n" << std::endl;
@@ -385,6 +388,56 @@ static void glfw_resize_callback(GLFWwindow*, int w, int h) {
     g_SwapChainResizeHeight = h;
 }
 
+struct {
+    vks::Model example;
+    vks::Model quad;
+    vks::Model plane;
+} models;
+
+/*
+void generateQuad() {
+    // Setup vertices for a single uv-mapped quad
+    struct Vertex {
+        float pos[3];
+        float uv[2];
+        float col[3];
+        float normal[3];
+    };
+
+#define QUAD_COLOR_NORMAL { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f, 1.0f }
+    std::vector<Vertex> vertexBuffer =
+    {
+        { { 1.0f, 1.0f, 0.0f },{ 1.0f, 1.0f }, QUAD_COLOR_NORMAL },
+        { { 0.0f, 1.0f, 0.0f },{ 0.0f, 1.0f }, QUAD_COLOR_NORMAL },
+        { { 0.0f, 0.0f, 0.0f },{ 0.0f, 0.0f }, QUAD_COLOR_NORMAL },
+        { { 1.0f, 0.0f, 0.0f },{ 1.0f, 0.0f }, QUAD_COLOR_NORMAL }
+    };
+#undef QUAD_COLOR_NORMAL
+
+    VK_CHECK_RESULT(vulkanDevice->createBuffer(
+        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        vertexBuffer.size() * sizeof(Vertex),
+        &models.quad.vertices.buffer,
+        &models.quad.vertices.memory,
+        vertexBuffer.data()));
+
+    // Setup indices
+    std::vector<uint32_t> indexBuffer = { 0,1,2, 2,3,0 };
+    models.quad.indexCount = indexBuffer.size();
+
+    VK_CHECK_RESULT(vulkanDevice->createBuffer(
+        VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        indexBuffer.size() * sizeof(uint32_t),
+        &models.quad.indices.buffer,
+        &models.quad.indices.memory,
+        indexBuffer.data()));
+
+    models.quad.device = g_Device; // device
+}
+*/
+
 int main(int argc, char* argv[]){
     
     // Set up logging level quick 
@@ -402,17 +455,32 @@ int main(int argc, char* argv[]){
     signal(SIGABRT, signalHandler);
 
     /// Specifying the expected rendering options
-    while ((option = getopt(argc, argv, "hCIV:L:")) != -1) {
-        switch (option) {
-            case 'C' : read_stdin = true;
+    const char* const short_opts = "hciv:l:";
+    const struct option long_opts[] = {
+        {"listgpus", no_argument, nullptr, 'l'},
+    };
+
+    //while ((option = getopt(argc, argv, "hCIV:L:")) != -1) {
+    while (true) {
+        const auto opt = getopt_long(argc, argv, short_opts, long_opts, nullptr);
+
+        if (opt == -1)
+            break;
+
+        switch (opt) {
+            case 'c' : read_stdin = true;
                 break;
-            case 'V' : verbose_level = atoi(optarg);
+            case 'v' : verbose_level = atoi(optarg);
                 break; 
-            case 'I' : run_interactive = true;    
+            case 'i' : run_interactive = true;    
                 break; 
-            case 'L': 
+            case 'l':  
+                //listGPUs();
+                exit(EXIT_SUCCESS);
+                break; 
             case 'h' :
-            default: print_usage(); 
+            default:
+                printUsage(); 
                 exit(EXIT_FAILURE);
         }
     }
@@ -537,8 +605,6 @@ int main(int argc, char* argv[]){
 
         int width = win_width, height = win_height;
         float ratio = width / (float) height;
-
-        mat4x4 m, p, mvp;
 
         // run ipr renderer
         int samples = 16;

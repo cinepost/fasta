@@ -26,3 +26,6 @@
 	path = third_party/enum-flags
 	url = https://github.com/grisumbras/enum-flags.git
 	branch = master
+[submodule "third_party/hgiVk"]
+	path = third_party/hgiVk
+	url = https://github.com/lumonix/hgiVk.git

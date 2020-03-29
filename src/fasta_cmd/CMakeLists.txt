@@ -1,6 +1,7 @@
 set (SOURCES 
+	./ipr_window.cpp
 	./fasta.cpp
-	${PROJECT_SOURCE_DIR}/third_party/glad/src/glad.c
+	#${PROJECT_SOURCE_DIR}/third_party/glad/src/glad.c
 	${PROJECT_SOURCE_DIR}/third_party/imgui/imgui.cpp
 	${PROJECT_SOURCE_DIR}/third_party/imgui/imgui_draw.cpp
 	${PROJECT_SOURCE_DIR}/third_party/imgui/imgui_widgets.cpp
