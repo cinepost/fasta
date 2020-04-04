@@ -29,11 +29,22 @@ void Vulkan_App::initVulkan() {
     createImageViews();
     createRenderPass();
     createGraphicsPipeline();
+    createFramebuffers();
+    createCommandPool();
+    createCommandBuffers();
+    createSyncObjects();
     LOG_DBG << "Vulkan_App::initVulkan() done";
 }
 
 void Vulkan_App::cleanup() {
     LOG_DBG << "Vulkan_App::cleanup()";
+
+    vkDestroyCommandPool(_device, _command_pool, nullptr);
+
+    for (auto framebuffer : _swap_chain_framebuffers) {
+        vkDestroyFramebuffer(_device, framebuffer, nullptr);
+    }
+
     vkDestroyPipeline(_device, _graphics_pipeline, nullptr);
     vkDestroyPipelineLayout(_device, _pipeline_layout, nullptr);
     vkDestroyRenderPass(_device, _render_pass, nullptr);
@@ -285,6 +296,18 @@ bool Vulkan_App::checkDeviceExtensionSupport(VkPhysicalDevice device) {
     }
     LOG_DBG << "Vulkan_App::checkDeviceExtensionSupport() done";
     return requiredExtensions.empty();
+}
+
+void Vulkan_App::createCommandPool() {
+    QueueFamilyIndices queueFamilyIndices = findQueueFamilies(_physical_device);
+
+    VkCommandPoolCreateInfo pool_info = {};
+    pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    pool_info.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+
+    if (vkCreateCommandPool(_device, &pool_info, nullptr, &_command_pool) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create command pool!");
+    }
 }
 
 bool Vulkan_App::checkValidationLayerSupport() {

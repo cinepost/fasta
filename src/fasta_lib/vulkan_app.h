@@ -42,12 +42,16 @@ class Vulkan_App {
 		virtual void createImageViews(){};
         virtual void createRenderPass(){};
         virtual void createGraphicsPipeline(){};
+        virtual void createFramebuffers(){};
+        virtual void createCommandBuffers(){};
+        virtual void createSyncObjects(){};
 		virtual std::vector<const char*> getRequiredExtensions();
 		void createInstance();
 		void setupDebugMessenger();
 		void createLogicalDevice();
 		bool isDeviceSuitable(VkPhysicalDevice device);
 		void pickPhysicalDevice();
+		void createCommandPool();
 		bool checkDeviceExtensionSupport(VkPhysicalDevice device);
 		bool checkValidationLayerSupport();
 		void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
@@ -63,11 +67,15 @@ class Vulkan_App {
 		VkQueue _graphics_queue;
 
 		VkSwapchainKHR _swap_chain;
+		std::vector<VkFramebuffer> _swap_chain_framebuffers;
 		std::vector<VkImageView> _swap_chain_image_views;
 
 		VkRenderPass _render_pass;
     	VkPipelineLayout _pipeline_layout;
     	VkPipeline _graphics_pipeline;
+
+    	VkCommandPool _command_pool;
+    	std::vector<VkCommandBuffer> _command_buffers;
 
 	private:
 		VkDebugUtilsMessengerEXT _debug_messenger;

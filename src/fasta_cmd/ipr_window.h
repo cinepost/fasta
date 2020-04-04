@@ -10,6 +10,7 @@
 
 #include "fasta_lib/vulkan_app.h"
 
+const int MAX_FRAMES_IN_FLIGHT = 2;
 
 class IPR_Window: public Vulkan_App {
 	public:
@@ -22,6 +23,7 @@ class IPR_Window: public Vulkan_App {
 		void toggleShowDebugInfo();
 
 	private:
+		void drawFrame();
 		void initWindow();
 		void mainLoop();
 		void cleanup();
@@ -30,6 +32,11 @@ class IPR_Window: public Vulkan_App {
 		void createImageViews();
 		void createRenderPass();
         void createGraphicsPipeline();
+        void createFramebuffers();
+        void createCommandBuffers();
+        void createSyncObjects();
+        void cleanupSwapChain();
+        void recreateSwapChain();
 		std::vector<const char*> getRequiredExtensions();
 
 		VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
@@ -46,13 +53,21 @@ class IPR_Window: public Vulkan_App {
 	    VkFormat _swap_chain_image_format;
 	    VkExtent2D _swap_chain_extent;
 
+	    std::vector<VkSemaphore> imageAvailableSemaphores;
+    	std::vector<VkSemaphore> renderFinishedSemaphores;
+    	std::vector<VkFence> inFlightFences;
+    	std::vector<VkFence> imagesInFlight;
+
+    	size_t currentFrame = 0;
+    	bool framebufferResized = false;
+
 	private:
 		static const std::vector<const char*> _device_extensions;
 
 	// GLFW part
 	private:
-		static void glfwKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
-
+		static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
+		static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 };
 
 
