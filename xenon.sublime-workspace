@@ -4,6 +4,42 @@
 		"selected_items":
 		[
 			[
+				"wi",
+				"window"
+			],
+			[
+				"I",
+				"IPR_Window"
+			],
+			[
+				"main",
+				"mainLoop"
+			],
+			[
+				"list",
+				"listGPUs"
+			],
+			[
+				"sho",
+				"short_opts"
+			],
+			[
+				"ar",
+				"argc"
+			],
+			[
+				"EXI",
+				"EXIT_SUCCESS"
+			],
+			[
+				"LOG_",
+				"LOG_FTL"
+			],
+			[
+				"E",
+				"EXIT_FAILURE"
+			],
+			[
 				"Fst",
 				"FstRendererIPR"
 			],
@@ -56,25 +92,84 @@
 	"buffers":
 	[
 		{
-			"contents": "#ifndef __FASTA_RENDERER_H__\n#define __FASTA_RENDERER_H__\n\n#include <stdio.h>\n#include <stdlib.h>\n\n#include <glad/glad.h>\n\n#ifdef __APPLE__\n\t#include <OpenGL/gl.h>\n\t#include <OpenGL/OpenGL.h>\n\t#include <OpenGL/CGLTypes.h>\n\t#include <OpenGL/CGLCurrent.h>\n#elif __linux__\n\t#include <X11/X.h>\n\t#include <X11/Xlib.h> \n\t#include <GL/gl.h>\n\t#include <GL/glx.h>\n#endif\n\n#include \"fasta_lib/gbuffer.h\"\n#include \"fasta_lib/shader.h\"\n#include \"fasta_lib/object.h\"\n#include \"fasta_lib/light.h\"\n#include \"fasta_lib/display.h\"\n\n#ifdef __linux__\n\ttypedef GLXContext (*glXCreateContextAttribsARBProc)(Display*, GLXFBConfig, GLXContext, Bool, const int*);\n\ttypedef Bool (*glXMakeContextCurrentARBProc)(Display*, GLXDrawable, GLXDrawable, GLXContext);\n\tstatic glXCreateContextAttribsARBProc glXCreateContextAttribsARB = NULL;\n\tstatic glXMakeContextCurrentARBProc glXMakeContextCurrentARB = NULL;\n#endif\n\nnamespace fst {\n\nclass FstRendererIPR;\n\nclass FstRenderer {\n\tfriend class FstRendererIPR;\n\n\tpublic:\n\t\tFstRenderer();\n\t\t~FstRenderer();\n\t\tbool init();\n\n\t\tFstGBuffer *renderFrame(uint width, uint height);\n\t\t\n\t\tFstDisplay\t*getDisplay();\n\n\t\tFstObject\t*newObject();\n\t\tFstLight\t*newLight();\n\n\t\tuint getCompletedSamples() const;\n\n\tprivate:\n\t\tvoid _renderSample(uint sample, uint samples_total);\n\t\tbool _renderTile(uint xl, uint xr, uint yb, uint yt, uint tx, uint ty);\n\n\n\t\tFstGBuffer *renderbuffer;\n\t\tFstDisplay *display;\n\n\tprivate:\n\t\tbool initialized;\n\n\t\t#ifdef __APPLE__\n\t\t\tCGLContextObj\tctx;\n\t\t#elif __linux__\n\t\t\tGLXContext \t\tctx;\n\n\t\t\tDisplay* \t\tdpy;\n\t    \tGLXFBConfig* \tfbc;\n\t    \tGLXPbuffer \t\tpbuf;\n\t    #endif\n\n\t    int fbcount;\n\t    int\tmaxDrawBuffers;\n\n\tprivate:\n\t    FstShader shaderGeometryPass, shaderLightingPass;\n\n\tprivate:\n\t\tfloat\t\t\t\t\tcurrent_time;\n\t\tstd::vector<FstObject*>\tobjects;\n\t\tstd::vector<FstLight*>\tlights;\n\n\tprivate:\n\t\tuint _width;\n\t\tuint _height;\n\n};\n\n}\n\n#endif // __FASTA_RENDERER_H__",
-			"file": "src/fasta_lib/renderer.h",
-			"file_size": 1891,
-			"file_write_time": 132260614983979184,
+			"file": "src/fasta_lib/renderer_ipr.cpp",
 			"settings":
 			{
-				"buffer_size": 1891,
+				"buffer_size": 2940,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
 		},
 		{
-			"contents": "#include <iostream>\n\n#include \"fasta_utils_lib/logging.h\"\n#include \"fasta_lib/renderer_ipr.h\"\n\nnamespace fst {\n\nFstRendererIPR::FstRendererIPR(): _futureObj(_stopSignal.get_future()) {\n\tstd::cout << \"Fasta IPR renderer constructor called.\" << std::endl;\n\t_renderer = new FstRenderer();\n    std::cout << \"Fasta IPR renderer constructed.\" << std::endl;\n}\n\nFstRendererIPR::~FstRendererIPR(){\n\tstd::cout << \"Fasta IPR renderer destructor called.\" << std::endl;\n\n\tif(_renderer!=nullptr) \n\t\tdelete _renderer;\n\n\tstd::cout << \"Fasta IPR renderer destructed.\" << std::endl;\n}\n\nvoid FstRendererIPR::renderSamples() {\n\twhile (stopRequested() == false) {\n\t\tfor(uint i=0; i < _samples; i++){\n\t\t\t_state = State::RUNNING;\n\t  \t\twhile(_pause_ipr){\n\t  \t\t\t_state = State::PAUSED;\n\t     \t\tstd::unique_lock<std::mutex> lk(_m);\n\t     \t\t_cv.wait(lk);\n\t     \t\tlk.unlock();\n\t  \t\t}\n\t  \t_renderer->_renderSample(i, _samples);\n\t  \tstd::this_thread::sleep_for(std::chrono::milliseconds(1000));\n\t\t}\n\t\t_state = State::DONE;\n\t\tbreak;\n\t}\n\n\t_state = State::DONE;\n\tfprintf(stdout, \"ipr done\\n\");\n}\n\nvoid FstRendererIPR::run(uint width, uint height, uint samples) {\n\tfprintf(stdout, \"ipr run\\n\" );\n\t_width = width;\n\t_height = height;\n\t_samples = samples;\n\t_pause_ipr = false;\n\t_render_thread = std::make_unique<std::thread>(std::bind(&FstRendererIPR::renderSamples, this));\n\t_render_thread->detach();\n}\n\nvoid FstRendererIPR::pause() {\n\tstd::lock_guard<std::mutex> lk(_m);\n  \t_pause_ipr=true;\n  \tLOG_DBG << \"ipr paused\";\n}\n\nvoid FstRendererIPR::resume() {\n\tstd::lock_guard<std::mutex> lk(_m);\n  \t_pause_ipr=false;\n  \t_cv.notify_one();\n  \tLOG_DBG << \"ipr resumed\";\n}\n\nvoid FstRendererIPR::togglePause() {\n\tif (_state == State::PAUSED) {\n\t\tresume();\n\t} else if (_state == State::RUNNING) {\n\t\tpause();\n\t}\n}\n\nbool FstRendererIPR::stopRequested() {\n\t// checks if value in future object is available\n\tif (_futureObj.wait_for(std::chrono::milliseconds(1)) == std::future_status::timeout) return false;\n\treturn true;\n}\n\nvoid FstRendererIPR::resize(uint width, uint height) {\n\t//std::lock_guard<std::mutex> lk(_m);\n\tif ((_state == State::RUNNING) && ((_width != width) || (_height != height))){\n\t\tfprintf(stdout, \"ipr resize\\n\" );\n\t\t//_stopSignal.set_value();\n\t\t//_render_thread->join();\n\t\t//run(width, height, _samples);\n\t}\n}\n\n} // namespace",
-			"file": "src/fasta_lib/renderer_ipr.cpp",
-			"file_size": 2296,
-			"file_write_time": 132260615138220786,
+			"file": "src/fasta_cmd/fasta.cpp",
 			"settings":
 			{
-				"buffer_size": 2296,
+				"buffer_size": 24120,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/fasta_cmd/ipr_window.cpp",
+			"settings":
+			{
+				"buffer_size": 5266,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"contents": "#include <vector>\n\n#include \"fasta_lib/vulkan_tools.h\"\n\nVkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {\n    auto func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, \"vkCreateDebugUtilsMessengerEXT\");\n    if (func != nullptr) {\n        return func(instance, pCreateInfo, pAllocator, pDebugMessenger);\n    } else {\n        return VK_ERROR_EXTENSION_NOT_PRESENT;\n    }\n}\n\nvoid DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) {\n    auto func = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, \"vkDestroyDebugUtilsMessengerEXT\");\n    if (func != nullptr) {\n        func(instance, debugMessenger, pAllocator);\n    }\n}\n\nVkPhysicalDevice pickPhysicalVulkanDevice(VkInstance instance) {\n\tVkPhysicalDevice physical_device = VK_NULL_HANDLE;\n    uint32_t device_count = 0;\n    vkEnumeratePhysicalDevices(instance, &device_count, nullptr);\n\n    if (device_count == 0) {\n        throw std::runtime_error(\"failed to find GPUs with Vulkan support!\");\n    }\n\n    std::vector<VkPhysicalDevice> devices(device_count);\n    vkEnumeratePhysicalDevices(instance, &device_count, devices.data());\n\n    for (const auto& device : devices) {\n        if (isVulkanDeviceSuitable(device)) {\n            physical_device = device;\n            break;\n        }\n    }\n\n    if (physical_device == VK_NULL_HANDLE) {\n        throw std::runtime_error(\"failed to find a suitable GPU!\");\n    }\n\n    return physical_device;\n}\n\nbool isVulkanDeviceSuitable(VkPhysicalDevice device) {\n    QueueFamilyIndices indices = findQueueFamilies(device);\n\n    return indices.isComplete();\n}\n\nQueueFamilyIndices findQueueFamilies(VkPhysicalDevice device) {\n    QueueFamilyIndices indices;\n\n    uint32_t queueFamilyCount = 0;\n    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);\n\n    std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);\n    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());\n\n    int i = 0;\n    for (const auto& queueFamily : queueFamilies) {\n        if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {\n            indices.graphicsFamily = i;\n        }\n\n        if (indices.isComplete()) {\n            break;\n        }\n\n        i++;\n    }\n\n    return indices;\n}\n\nvoid createLogicalDevice(VkPhysicalDevice physical_device) {\n    QueueFamilyIndices indices = findQueueFamilies(physical_device);\n\n    VkDeviceQueueCreateInfo queueCreateInfo = {};\n    queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;\n    queueCreateInfo.queueFamilyIndex = indices.graphicsFamily.value();\n    queueCreateInfo.queueCount = 1;\n\n    float queuePriority = 1.0f;\n    queueCreateInfo.pQueuePriorities = &queuePriority;\n\n    VkPhysicalDeviceFeatures deviceFeatures = {};\n\n    VkDeviceCreateInfo createInfo = {};\n    createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;\n\n    createInfo.pQueueCreateInfos = &queueCreateInfo;\n    createInfo.queueCreateInfoCount = 1;\n\n    createInfo.pEnabledFeatures = &deviceFeatures;\n\n    createInfo.enabledExtensionCount = 0;\n\n    if (enableValidationLayers) {\n        createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());\n        createInfo.ppEnabledLayerNames = validationLayers.data();\n    } else {\n        createInfo.enabledLayerCount = 0;\n    }\n\n    if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS) {\n        throw std::runtime_error(\"failed to create logical device!\");\n    }\n\n    vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);\n}\n",
+			"file": "src/fasta_lib/vulkan_tools.cpp",
+			"file_size": 2491,
+			"file_write_time": 132299175222133089,
+			"settings":
+			{
+				"buffer_size": 3781,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/fasta_lib/vulkan_tools.h",
+			"settings":
+			{
+				"buffer_size": 824,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/fasta_cmd/ipr_window.h",
+			"settings":
+			{
+				"buffer_size": 1505,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/fasta_cmd/CMakeLists.txt",
+			"settings":
+			{
+				"buffer_size": 2000,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/fasta_lib/CMakeLists.txt",
+			"settings":
+			{
+				"buffer_size": 1698,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "CMakeLists.txt",
+			"settings":
+			{
+				"buffer_size": 4230,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -83,7 +178,7 @@
 			"file": "src/fasta_lib/renderer.cpp",
 			"settings":
 			{
-				"buffer_size": 5905,
+				"buffer_size": 3603,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -121,9 +216,15 @@
 	},
 	"expanded_folders":
 	[
+		"/home/max/dev/fasta",
+		"/home/max/dev/fasta/src",
+		"/home/max/dev/fasta/src/fasta_cmd",
+		"/home/max/dev/fasta/src/fasta_lib",
+		"/home/max/dev/fasta/src/fasta_utils_lib"
 	],
 	"file_history":
 	[
+		"/home/max/dev/fasta/src/fasta_lib/renderer.h",
 		"/home/max/dev/fasta/CMakeLists.txt",
 		"/home/max/dev/fasta/third_party/glad/include/KHR/khrplatform.h",
 		"/home/max/dev/fasta/third_party/glad/include/glad/glad.h",
@@ -189,45 +290,16 @@
 	"groups":
 	[
 		{
-			"selected": 2,
+			"selected": 3,
 			"sheets":
 			[
 				{
 					"buffer": 0,
-					"file": "src/fasta_lib/renderer.h",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 1891,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								976,
-								976
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/C++/C++.sublime-syntax",
-							"translate_tabs_to_spaces": false
-						},
-						"translation.x": 0.0,
-						"translation.y": 153.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 2,
-					"type": "text"
-				},
-				{
-					"buffer": 1,
 					"file": "src/fasta_lib/renderer_ipr.cpp",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 2296,
+						"buffer_size": 2940,
 						"regions":
 						{
 						},
@@ -247,24 +319,54 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 1,
+					"stack_index": 8,
 					"type": "text"
 				},
 				{
-					"buffer": 2,
-					"file": "src/fasta_lib/renderer.cpp",
+					"buffer": 1,
+					"file": "src/fasta_cmd/fasta.cpp",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 5905,
+						"buffer_size": 24120,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								4531,
-								4531
+								15991,
+								15991
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 10132.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 3,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "src/fasta_cmd/ipr_window.cpp",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 5266,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1083,
+								1083
 							]
 						],
 						"settings":
@@ -272,10 +374,215 @@
 							"syntax": "Packages/C++/C++.sublime-syntax"
 						},
 						"translation.x": 0.0,
-						"translation.y": 2652.0,
+						"translation.y": 1173.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": "src/fasta_lib/vulkan_tools.cpp",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 3781,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								2620,
+								2620
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 1052.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 0,
+					"type": "text"
+				},
+				{
+					"buffer": 4,
+					"file": "src/fasta_lib/vulkan_tools.h",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 824,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								787,
+								787
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 4,
+					"type": "text"
+				},
+				{
+					"buffer": 5,
+					"file": "src/fasta_cmd/ipr_window.h",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1505,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1141,
+								1141
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax"
+						},
+						"translation.x": 0.0,
+						"translation.y": 204.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
+					"type": "text"
+				},
+				{
+					"buffer": 6,
+					"file": "src/fasta_cmd/CMakeLists.txt",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 2000,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								31,
+								31
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Text/Plain text.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 7,
+					"type": "text"
+				},
+				{
+					"buffer": 7,
+					"file": "src/fasta_lib/CMakeLists.txt",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1698,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1101,
+								1101
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Text/Plain text.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 6,
+					"type": "text"
+				},
+				{
+					"buffer": 8,
+					"file": "CMakeLists.txt",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 4230,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								120,
+								120
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Text/Plain text.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 5,
+					"type": "text"
+				},
+				{
+					"buffer": 9,
+					"file": "src/fasta_lib/renderer.cpp",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 3603,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 2623.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 9,
 					"type": "text"
 				}
 			]
@@ -287,7 +594,7 @@
 	},
 	"input":
 	{
-		"height": 0.0
+		"height": 38.0
 	},
 	"layout":
 	{
@@ -362,7 +669,7 @@
 	"show_open_files": false,
 	"show_tabs": true,
 	"side_bar_visible": true,
-	"side_bar_width": 215.0,
+	"side_bar_width": 316.0,
 	"status_bar_visible": true,
 	"template_settings":
 	{

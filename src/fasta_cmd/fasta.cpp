@@ -33,12 +33,9 @@
 #include <boost/log/expressions.hpp>
 
 #include "fasta_utils_lib/logging.h"
-
-namespace logging = boost::log;
+#include "fasta_cmd/ipr_window.h"
 
 // ---------
-
-#include "fsquad.h"
 
 #define win_width 1200
 #define win_height 800
@@ -48,6 +45,7 @@ typedef std::chrono::duration<float> float_seconds;
 using namespace fst;
 
 // some globals
+/*
 std::unique_ptr<FstRendererIPR> fasta_ipr;
 bool show_debug_window = false; // imgui
 ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
@@ -67,6 +65,7 @@ static int                      g_MinImageCount = 2;
 static bool                     g_SwapChainRebuild = false;
 static int                      g_SwapChainResizeWidth = 0;
 static int                      g_SwapChainResizeHeight = 0;
+*/
 
 void printUsage() {
     std::cout << "Usage: fasta [options] [ifd] [outputimage]\n" << std::endl;
@@ -79,11 +78,11 @@ void printUsage() {
 
     std::cout << "    Control Options:" << std::endl;
     std::cout << "        -f file  Read scene file specified instead of reading from stdin" << std::endl;
-    std::cout << "        -I  Run interactive window" << std::endl;
-    std::cout << "        -V val  Set verbose level (i.e. -V 2)" << std::endl;
+    std::cout << "        -i  Run interactive window" << std::endl;
+    std::cout << "        -v val  Set verbose level (i.e. -v 2)" << std::endl;
     std::cout << "                    0-6  Output varying degrees of rendering statistics" << std::endl;
     std::cout << "        -l logfile  Write log to file" << std::endl;
-    std::cout << "        -C      Enable stdin compatibility mode." << std::endl;
+    std::cout << "        -c      Enable stdin compatibility mode." << std::endl;
 }
 
 void signalHandler( int signum ){
@@ -93,7 +92,7 @@ void signalHandler( int signum ){
     // terminate program
     exit(signum);
 }
-
+/*
 static void check_vk_result(VkResult err) {
     if (err == 0) return;
     printf("VkResult %d\n", err);
@@ -363,25 +362,6 @@ static void glfw_error_callback(int error, const char* description) {
     fprintf(stderr, "Error: %s\n", description);
 }
 
-static void glfw_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    if (action == GLFW_PRESS) {
-        switch(key) {
-            case GLFW_KEY_ESCAPE:
-                glfwSetWindowShouldClose(window, GLFW_TRUE);
-                break;
-            case GLFW_KEY_P:
-                fasta_ipr->togglePauseResume();
-                break;
-            case GLFW_KEY_S:
-                fasta_ipr->toggleStartStop();
-                break;
-            case GLFW_KEY_D:
-                show_debug_window = !show_debug_window;
-                break;
-        }
-    }
-}
-
 static void glfw_resize_callback(GLFWwindow*, int w, int h) {
     g_SwapChainRebuild = true;
     g_SwapChainResizeWidth = w;
@@ -393,76 +373,33 @@ struct {
     vks::Model quad;
     vks::Model plane;
 } models;
-
-/*
-void generateQuad() {
-    // Setup vertices for a single uv-mapped quad
-    struct Vertex {
-        float pos[3];
-        float uv[2];
-        float col[3];
-        float normal[3];
-    };
-
-#define QUAD_COLOR_NORMAL { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f, 1.0f }
-    std::vector<Vertex> vertexBuffer =
-    {
-        { { 1.0f, 1.0f, 0.0f },{ 1.0f, 1.0f }, QUAD_COLOR_NORMAL },
-        { { 0.0f, 1.0f, 0.0f },{ 0.0f, 1.0f }, QUAD_COLOR_NORMAL },
-        { { 0.0f, 0.0f, 0.0f },{ 0.0f, 0.0f }, QUAD_COLOR_NORMAL },
-        { { 1.0f, 0.0f, 0.0f },{ 1.0f, 0.0f }, QUAD_COLOR_NORMAL }
-    };
-#undef QUAD_COLOR_NORMAL
-
-    VK_CHECK_RESULT(vulkanDevice->createBuffer(
-        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        vertexBuffer.size() * sizeof(Vertex),
-        &models.quad.vertices.buffer,
-        &models.quad.vertices.memory,
-        vertexBuffer.data()));
-
-    // Setup indices
-    std::vector<uint32_t> indexBuffer = { 0,1,2, 2,3,0 };
-    models.quad.indexCount = indexBuffer.size();
-
-    VK_CHECK_RESULT(vulkanDevice->createBuffer(
-        VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        indexBuffer.size() * sizeof(uint32_t),
-        &models.quad.indices.buffer,
-        &models.quad.indices.memory,
-        indexBuffer.data()));
-
-    models.quad.device = g_Device; // device
-}
 */
 
 int main(int argc, char* argv[]){
-    
     // Set up logging level quick 
-    logging::core::get()->set_filter( logging::trivial::severity >= logging::trivial::debug );
-
+    fst::ut::log::init_log();
+    boost::log::core::get()->set_filter(  boost::log::trivial::severity >=  boost::log::trivial::debug );
+    
     int option = 0;
     int verbose_level = 6;
-    bool read_stdin = false;
-    bool run_interactive = false;
+    bool read_stdin = true;
+    bool run_interactive = true;
 
-    std::istream *in; // input stream pointer
+    //std::istream *in; // input stream pointer
     std::ifstream ifn; // input file
 
     signal(SIGTERM, signalHandler);
     signal(SIGABRT, signalHandler);
 
     /// Specifying the expected rendering options
-    const char* const short_opts = "hciv:l:";
     const struct option long_opts[] = {
         {"listgpus", no_argument, nullptr, 'l'},
     };
 
+
     //while ((option = getopt(argc, argv, "hCIV:L:")) != -1) {
     while (true) {
-        const auto opt = getopt_long(argc, argv, short_opts, long_opts, nullptr);
+        const auto opt = getopt_long(argc, argv, "hciv:l:", long_opts, nullptr);
 
         if (opt == -1)
             break;
@@ -486,6 +423,7 @@ int main(int argc, char* argv[]){
     }
 
     /// Handle renderer input 
+    /*
     if(read_stdin){
         LOG_DBG << "Reading commands from stdin:";
         in = &std::cin;
@@ -498,28 +436,31 @@ int main(int argc, char* argv[]){
         }
         in = &ifn;
     }
+    */
 
     /// Run interactive debug IPR
     if (run_interactive) {
         LOG_DBG << "Fasta debug IPR starting...";
 
-        if (!glfwInit())
-            exit(EXIT_FAILURE);
+        IPR_Window app;
 
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        GLFWwindow* window = glfwCreateWindow(win_width, win_height, "Fasta IPR debug", NULL, NULL);
+        //if (!glfwInit())
+        //    exit(EXIT_FAILURE);
 
-        if (!window) {
-            glfwTerminate();
-            exit(EXIT_FAILURE);
-        }
+        //glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+        //GLFWwindow* window = glfwCreateWindow(win_width, win_height, "Fasta IPR debug", NULL, NULL);
 
-        if (!glfwVulkanSupported()) {
+        //if (!window) {
+        //    glfwTerminate();
+        //    exit(EXIT_FAILURE);
+        //}
+
+        //if (!glfwVulkanSupported()) {
             // Vulkan is NOT available
-            LOG_FTL << "Vulkan is NOT available !!!";
-            exit(EXIT_FAILURE);
-        }
-
+        //    LOG_FTL << "Vulkan is NOT available !!!";
+        //    exit(EXIT_FAILURE);
+        //}
+        /*
         uint32_t extensions_count = 0;
         const char** extensions = glfwGetRequiredInstanceExtensions(&extensions_count);
         SetupVulkan(extensions, extensions_count);
@@ -530,7 +471,7 @@ int main(int argc, char* argv[]){
         //    exit(EXIT_FAILURE);
         //}
 
-        glfwSetErrorCallback(glfw_error_callback);
+        //glfwSetErrorCallback(glfw_error_callback);
 
         // Create Window Surface
         VkSurfaceKHR surface;
@@ -609,7 +550,16 @@ int main(int argc, char* argv[]){
         // run ipr renderer
         int samples = 16;
         //fasta_ipr->run();
+        */
 
+        try {
+            app.run();
+        } catch (const std::exception& e) {
+            std::cerr << e.what() << std::endl;
+            exit(EXIT_FAILURE);
+        }
+
+        /*
         while (!glfwWindowShouldClose(window)) {
             glfwPollEvents();
 
@@ -651,11 +601,13 @@ int main(int argc, char* argv[]){
             
             //fasta_ipr->gl_mutex.unlock();
         }
+        */
 
         // delete ipr renderer
         //fasta_ipr.reset(nullptr);
 
         // Cleanup
+        /*
         err = vkDeviceWaitIdle(g_Device);
         check_vk_result(err);
         ImGui_ImplVulkan_Shutdown();
@@ -667,7 +619,8 @@ int main(int argc, char* argv[]){
 
         glfwDestroyWindow(window);
         glfwTerminate();
-
+        */
+        LOG_DBG << "Fasta debug IPR done.";
         exit(EXIT_SUCCESS);
     }
 
@@ -684,5 +637,5 @@ int main(int argc, char* argv[]){
     }
     */
 
-    return 0;
+    exit(EXIT_SUCCESS);
 }
